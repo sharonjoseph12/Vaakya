@@ -40,7 +40,7 @@ class AnalyticsScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 _statCard('🔥', '$streakCount', 'Day Streak', const Color(0xFFFF6584)),
                 const SizedBox(width: 12),
-                _statCard('📊', '${quizAverage.toStringAsFixed(1)}', 'Quiz Avg', const Color(0xFF00D2FF)),
+                _statCard('📊', quizAverage.toStringAsFixed(1), 'Quiz Avg', const Color(0xFF00D2FF)),
               ],
             ).animate().fadeIn(duration: 400.ms),
 
