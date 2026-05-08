@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
-from routers import chat, admin
+from routers import chat, admin, vision
 from routers import quiz as quiz_router
 from routers import youtube as youtube_router
 from services.report_service import send_weekly_reports
@@ -17,12 +17,13 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     yield
     # Shutdown
-    scheduler.shutdown()
+    scheduler.shutdown(wait=False)
 
 
 app = FastAPI(title="VoiceGuru API", version="1.0.0", lifespan=lifespan)
 
 app.include_router(chat.router)
+app.include_router(vision.router)
 app.include_router(admin.router)
 app.include_router(quiz_router.router)
 app.include_router(youtube_router.router)
