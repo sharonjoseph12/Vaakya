@@ -50,3 +50,8 @@ class VideoResponse(BaseModel):
     title: str
     thumbnail_url: str
     status: str
+
+
+class VisionResponse(BaseModel):
+    ai_reply: str
+    status: str

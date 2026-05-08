@@ -1,7 +1,9 @@
+import logging
 from fastapi import APIRouter
 from models.schemas import VideoResponse
 from services.youtube_service import search_video
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/media", tags=["media"])
 
 
@@ -17,7 +19,8 @@ async def get_video(query: str):
             thumbnail_url="",
             status="not_found",
         )
-    except Exception:
+    except Exception as e:
+        logger.error(f"YouTube search failed for query '{query}': {e}")
         return VideoResponse(
             video_id="",
             title="Video search failed",
