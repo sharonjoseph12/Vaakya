@@ -24,11 +24,17 @@ CRITICAL RULES:
 
 User Query: {query}"""
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt,
-    )
-    return response.text
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
+        if not response or not response.text:
+            return "I'm having a little trouble thinking clearly right now. Could you ask me again?"
+        return response.text
+    except Exception as e:
+        logger.error(f"Gemini text generation failed: {e}")
+        return "I'm thinking a bit too hard right now, please ask again!"
 
 
 async def generate_vision_hint(image_bytes: bytes) -> str:
@@ -44,11 +50,17 @@ CRITICAL RULES:
 
 Now look at the homework problem in the image and give your single Socratic hint."""
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
-            prompt,
-        ],
-    )
-    return response.text
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
+                prompt,
+            ],
+        )
+        if not response or not response.text:
+            return "I can't quite see that image. Could you try taking a sharper photo?"
+        return response.text
+    except Exception as e:
+        logger.error(f"Gemini vision generation failed: {e}")
+        return "I'm having trouble seeing that image. Could you try again in better light?"

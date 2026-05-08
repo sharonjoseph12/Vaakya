@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/profile_provider.dart';
+import '../providers/chat_provider.dart';
+import '../core/api_client.dart';
+import '../core/supabase_config.dart';
 import '../core/theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -14,7 +17,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _whatsappController;
-  String _selectedClass = 'Class 9';
+  String _selectedClass = 'Class 8';
+  String _selectedBoard = 'CBSE';
 
   @override
   void initState() {
@@ -23,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _nameController = TextEditingController(text: profile.childName);
     _whatsappController = TextEditingController();
     _selectedClass = 'Class ${profile.grade}';
+    _selectedBoard = profile.board;
   }
 
   @override
@@ -91,17 +96,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildFieldLabel('Your Board'),
                 Row(
                   children: [
-                    _buildBoardChip('Karnataka State Board', false),
+                    _buildBoardChip('Karnataka State Board', _selectedBoard == 'Karnataka State Board'),
                     const SizedBox(width: 8),
-                    _buildBoardChip('CBSE', true),
+                    _buildBoardChip('CBSE', _selectedBoard == 'CBSE'),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _buildBoardChip('ICSE', false),
+                    _buildBoardChip('ICSE', _selectedBoard == 'ICSE'),
                     const SizedBox(width: 8),
-                    _buildBoardChip('Other', false),
+                    _buildBoardChip('Other', _selectedBoard == 'Other'),
                   ],
                 ),
               ],
@@ -126,7 +131,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(
               width: double.infinity, 
               child: ElevatedButton(
-                onPressed: () {}, 
+                onPressed: () async {
+                  final gradeNum = _selectedClass.split(' ').last;
+                  await profile.updateProfile(
+                    name: _nameController.text,
+                    grade: gradeNum,
+                    board: _selectedBoard,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully!')));
+                  }
+                }, 
                 child: const Text('Save Changes'),
               ),
             ),
@@ -134,7 +149,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(
               width: double.infinity, 
               child: OutlinedButton(
-                onPressed: () {}, 
+                onPressed: () {
+                  context.read<ChatProvider>().clearChat();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chat history cleared!')));
+                }, 
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: VoiceGuruTheme.errorRed), 
                   foregroundColor: VoiceGuruTheme.errorRed, 
@@ -145,7 +163,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            TextButton(onPressed: () {}, child: Text('Sign Out / Reset', style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, decoration: TextDecoration.underline))),
+            TextButton(
+              onPressed: () async {
+                await SupabaseConfig.client.auth.signOut();
+                if (mounted) Navigator.pushReplacementNamed(context, '/auth');
+              }, 
+              child: Text('Sign Out / Reset', style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, decoration: TextDecoration.underline))
+            ),
           ],
         ),
       ),
@@ -187,21 +211,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildBoardChip(String label, bool isSelected) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? VoiceGuruTheme.primaryPurple.withValues(alpha: 0.1) : VoiceGuruTheme.backgroundLight,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? VoiceGuruTheme.primaryPurple : Colors.black.withValues(alpha: 0.05)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected) const Icon(Icons.check, size: 16, color: VoiceGuruTheme.primaryPurple),
-            if (isSelected) const SizedBox(width: 4),
-            Text(label, style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: isSelected ? VoiceGuruTheme.primaryPurple : VoiceGuruTheme.textPrimary)),
-          ],
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedBoard = label),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected ? VoiceGuruTheme.primaryPurple.withValues(alpha: 0.1) : VoiceGuruTheme.backgroundLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isSelected ? VoiceGuruTheme.primaryPurple : Colors.black.withValues(alpha: 0.05)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isSelected) const Icon(Icons.check, size: 16, color: VoiceGuruTheme.primaryPurple),
+              if (isSelected) const SizedBox(width: 4),
+              Text(label, style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: isSelected ? VoiceGuruTheme.primaryPurple : VoiceGuruTheme.textPrimary)),
+            ],
+          ),
         ),
       ),
     );
@@ -232,7 +259,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SizedBox(
             width: double.infinity, 
             child: ElevatedButton.icon(
-              onPressed: () {}, 
+              onPressed: () async {
+                final phone = _whatsappController.text;
+                if (phone.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a phone number')));
+                  return;
+                }
+                await ApiClient.get('/api/v1/reports/send-now?parent_phone=$phone');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report sent to WhatsApp!')));
+                }
+              }, 
               icon: const Icon(Icons.send_rounded), 
               label: const Text('Send Weekly Report Now'), 
               style: ElevatedButton.styleFrom(backgroundColor: VoiceGuruTheme.successGreen, foregroundColor: Colors.white),

@@ -36,19 +36,19 @@ class AnalyticsScreen extends StatelessWidget {
 
             // ── Streak Calendar ───────────────────────────────────────────────
             _buildSectionHeader('Streak Calendar'),
-            _buildStreakCalendar(),
+            _buildStreakCalendar(gamification),
 
-            // ── Weekly Progress ───────────────────────────────────────────────
-            _buildSectionHeader('This Week'),
-            _buildWeeklyCard(),
+            // ── Overall Activity ──────────────────────────────────────────────
+            _buildSectionHeader('Overall Activity'),
+            _buildWeeklyCard(gamification),
 
             // ── Subjects Explored ─────────────────────────────────────────────
             _buildSectionHeader('What I\'ve Explored'),
-            _buildSubjectBreakdown(),
+            _buildSubjectBreakdown(gamification),
 
             // ── Achievements ──────────────────────────────────────────────────
             _buildSectionHeader('My Achievements 🏆'),
-            _buildAchievementGrid(profile),
+            _buildAchievementGrid(profile, gamification),
           ],
         ),
       ),
@@ -88,11 +88,11 @@ class AnalyticsScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _buildStatCard('Day Streak', '${profile.streakCount}', VoiceGuruTheme.streakGradient, '🔥'),
+          _buildStatCard('Day Streak', '${gamification.streakCount}', VoiceGuruTheme.streakGradient, '🔥'),
           const SizedBox(width: 12),
-          _buildStatCard('Stars Earned', '0', VoiceGuruTheme.starGradient, '⭐'),
+          _buildStatCard('Stars Earned', '${gamification.totalStars}', VoiceGuruTheme.starGradient, '⭐'),
           const SizedBox(width: 12),
-          _buildStatCard('Questions', '0', VoiceGuruTheme.questionGradient, '📚'),
+          _buildStatCard('Questions', '${gamification.totalQuestions}', VoiceGuruTheme.questionGradient, '📚'),
         ],
       ),
     );
@@ -116,31 +116,42 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStreakCalendar() {
-    final days = ['S', 'S', 'M', 'T', 'W', 'T', 'F'];
+  Widget _buildStreakCalendar(GamificationProvider gamification) {
+    final days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    final todayIndex = DateTime.now().weekday % 7;
+    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)]),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(7, (i) => Column(
-          children: [
-            Container(
-              width: 36, height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: i == 6 ? VoiceGuruTheme.accentOrange.withValues(alpha: 0.1) : VoiceGuruTheme.backgroundLight, border: i == 6 ? Border.all(color: VoiceGuruTheme.accentOrange) : null),
-              child: i == 6 ? const Icon(Icons.local_fire_department_rounded, size: 20, color: VoiceGuruTheme.accentOrange) : Text(days[i], style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: VoiceGuruTheme.textSecondary)),
-            ),
-            const SizedBox(height: 8),
-            Text(days[i], style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: i == 6 ? VoiceGuruTheme.accentOrange : VoiceGuruTheme.textSecondary)),
-          ],
-        )),
+        children: List.generate(7, (i) {
+          final isToday = i == todayIndex;
+          final isStreak = gamification.streakCount > 0 && i <= todayIndex; // Simplified streak visual
+          
+          return Column(
+            children: [
+              Container(
+                width: 36, height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle, 
+                  color: isStreak ? VoiceGuruTheme.accentOrange.withValues(alpha: 0.1) : VoiceGuruTheme.backgroundLight, 
+                  border: isToday ? Border.all(color: VoiceGuruTheme.accentOrange) : null
+                ),
+                child: isStreak ? const Icon(Icons.local_fire_department_rounded, size: 20, color: VoiceGuruTheme.accentOrange) : Text(days[i], style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: VoiceGuruTheme.textSecondary)),
+              ),
+              const SizedBox(height: 8),
+              Text(days[i], style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: isToday ? VoiceGuruTheme.accentOrange : VoiceGuruTheme.textSecondary)),
+            ],
+          );
+        }),
       ),
     );
   }
 
-  Widget _buildWeeklyCard() {
+  Widget _buildWeeklyCard(GamificationProvider gamification) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(24),
@@ -150,35 +161,44 @@ class AnalyticsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('This Week', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 18)),
-              Text('2026-05-02 – 2026-05-08', style: GoogleFonts.outfit(fontSize: 12, color: VoiceGuruTheme.textSecondary)),
+              Text('Activity', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 18)),
+              Text('Real-time stats', style: GoogleFonts.outfit(fontSize: 12, color: VoiceGuruTheme.textSecondary)),
             ],
           ),
-          const SizedBox(height: 40),
-          Text('Start learning to see your progress!', style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, fontSize: 14)),
+          const SizedBox(height: 20),
+          Text(
+            gamification.totalQuestions > 0 
+              ? 'You have asked ${gamification.totalQuestions} questions so far! Keep it up!' 
+              : 'Start learning to see your progress!', 
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, fontSize: 14)
+          ),
           const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildSubjectBreakdown() {
+  Widget _buildSubjectBreakdown(GamificationProvider gamification) {
+    final breakdown = gamification.subjectBreakdown;
+    final total = gamification.totalQuestions > 0 ? gamification.totalQuestions : 1;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
       child: Column(
         children: [
-          _buildSubjectRow('Math', '📐', 0, Colors.blue),
-          _buildSubjectRow('Science', '🔬', 0, Colors.green),
-          _buildSubjectRow('Social Studies', '🌍', 0, Colors.orange),
-          _buildSubjectRow('Other', '💡', 0, Colors.red),
+          _buildSubjectRow('Math', '📐', (breakdown['Math'] ?? 0) / total, Colors.blue, breakdown['Math'] ?? 0),
+          _buildSubjectRow('Science', '🔬', (breakdown['Science'] ?? 0) / total, Colors.green, breakdown['Science'] ?? 0),
+          _buildSubjectRow('Social Studies', '🌍', (breakdown['Social Studies'] ?? 0) / total, Colors.orange, breakdown['Social Studies'] ?? 0),
+          _buildSubjectRow('Other', '💡', (breakdown['Other'] ?? 0) / total, Colors.red, breakdown['Other'] ?? 0),
         ],
       ),
     );
   }
 
-  Widget _buildSubjectRow(String name, String icon, double progress, Color color) {
+  Widget _buildSubjectRow(String name, String icon, double progress, Color color, int count) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -188,7 +208,7 @@ class AnalyticsScreen extends StatelessWidget {
               Text(icon, style: const TextStyle(fontSize: 20)),
               const SizedBox(width: 12),
               Expanded(child: Text(name, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15))),
-              Text('0 questions', style: GoogleFonts.outfit(fontSize: 13, color: VoiceGuruTheme.textSecondary)),
+              Text('$count questions', style: GoogleFonts.outfit(fontSize: 13, color: VoiceGuruTheme.textSecondary)),
             ],
           ),
           const SizedBox(height: 8),
@@ -198,12 +218,13 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAchievementGrid(ProfileProvider profile) {
+  Widget _buildAchievementGrid(ProfileProvider profile, GamificationProvider gamification) {
+    final unlocked = gamification.badges;
     final achievements = [
-      {'name': 'First Question', 'icon': '🌱', 'locked': true},
-      {'name': '3 Day Streak', 'icon': '🔥', 'locked': true},
-      {'name': '10 Questions', 'icon': '⭐', 'locked': true},
-      {'name': 'Science Explorer', 'icon': '🔬', 'locked': true},
+      {'name': 'First Question', 'icon': '🌱', 'key': 'First Question'},
+      {'name': '3 Day Streak', 'icon': '🔥', 'key': 'Streak Master'},
+      {'name': '10 Questions', 'icon': '⭐', 'key': 'Speed Learner'},
+      {'name': 'Science Explorer', 'icon': '🔬', 'key': 'Science Explorer'},
     ];
 
     return GridView.builder(
@@ -214,6 +235,8 @@ class AnalyticsScreen extends StatelessWidget {
       itemCount: achievements.length,
       itemBuilder: (context, index) {
         final ach = achievements[index];
+        final isLocked = !unlocked.contains(ach['key']);
+        
         return Container(
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
           child: Column(
@@ -224,11 +247,11 @@ class AnalyticsScreen extends StatelessWidget {
                 children: [
                   Container(width: 60, height: 60, decoration: BoxDecoration(color: VoiceGuruTheme.backgroundLight, shape: BoxShape.circle)),
                   Text(ach['icon'] as String, style: const TextStyle(fontSize: 30)),
-                  if (ach['locked'] as bool) const Icon(Icons.lock, size: 20, color: Colors.black26),
+                  if (isLocked) const Icon(Icons.lock, size: 20, color: Colors.black26),
                 ],
               ),
               const SizedBox(height: 8),
-              Text(ach['name'] as String, style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: VoiceGuruTheme.textSecondary)),
+              Text(ach['name'] as String, style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: isLocked ? VoiceGuruTheme.textSecondary : VoiceGuruTheme.primaryPurple)),
             ],
           ),
         );

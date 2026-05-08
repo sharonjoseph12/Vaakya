@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/chat_provider.dart';
 import '../providers/voice_provider.dart';
 import '../providers/profile_provider.dart';
+import '../providers/gamification_provider.dart';
 import '../core/supabase_config.dart';
 import '../models/message_model.dart';
 import 'camera_screen.dart';
@@ -32,9 +33,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       final session = SupabaseConfig.client.auth.currentSession;
       if (session != null) {
-        profile.loadFirstChildForParent(session.user.id);
+        profile.loadFirstChildForParent(session.user.id).then((_) {
+          context.read<GamificationProvider>().loadFromPrefs(profile.profileId);
+        });
       } else {
         profile.useDemoProfile();
+        context.read<GamificationProvider>().loadFromPrefs(profile.profileId);
       }
 
       if (chat.messages.isEmpty) {
@@ -84,7 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: VoiceGuruTheme.successGreen.withValues(alpha: 0.2)),
                       ),
-                      child: Text('Lv.1 Making progress 📚', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600, color: VoiceGuruTheme.successGreen)),
+                      child: Text('Lv.${profile.learnerLevel == 'Advanced' ? '3' : profile.learnerLevel == 'Intermediate' ? '2' : '1'} ${profile.learnerLevel} 📚', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600, color: VoiceGuruTheme.successGreen)),
                     ),
                   ],
                 ),
@@ -111,7 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: Column(
         children: [
           // ── Streak Progress Card ──────────────────────────────────────────
-          _buildStreakCard(),
+          _buildStreakCard(profile, context.watch<GamificationProvider>()),
 
           // ── Chat View ─────────────────────────────────────────────────────
           Expanded(
@@ -120,7 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(20),
               itemCount: chat.messages.length + 1,
               itemBuilder: (context, index) {
-                if (index == 0) return _buildIntroOwl();
+                if (index == 0) return _buildIntroOwl(profile);
                 final msg = chat.messages[index - 1];
                 return _buildChatBubble(msg);
               },
@@ -135,7 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStreakCard() {
+  Widget _buildStreakCard(ProfileProvider profile, GamificationProvider gamification) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -149,15 +153,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: VoiceGuruTheme.primaryPurple.withValues(alpha: 0.1), shape: BoxShape.circle),
-            child: const Icon(Icons.bedtime_rounded, color: VoiceGuruTheme.primaryPurple),
+            child: const Icon(Icons.local_fire_department_rounded, color: VoiceGuruTheme.primaryPurple),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Start your streak today!', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16)),
-                Text('0/5 today', style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, fontSize: 13)),
+                Text(gamification.streakCount > 0 ? '${gamification.streakCount} Day Streak!' : 'Start your streak today!', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16)),
+                Text('${gamification.streakCount}/5 this week', style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, fontSize: 13)),
               ],
             ),
           ),
@@ -165,7 +169,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: List.generate(5, (i) => Container(
               margin: const EdgeInsets.only(left: 4),
               width: 12, height: 12,
-              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.black12), color: Colors.transparent),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle, 
+                border: Border.all(color: i < gamification.streakCount % 5 ? VoiceGuruTheme.primaryPurple : Colors.black12), 
+                color: i < gamification.streakCount % 5 ? VoiceGuruTheme.primaryPurple : Colors.transparent
+              ),
             )),
           ),
         ],
@@ -173,7 +181,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0);
   }
 
-  Widget _buildIntroOwl() {
+  Widget _buildIntroOwl(ProfileProvider profile) {
     return Column(
       children: [
         const Icon(Icons.emoji_emotions, size: 80, color: VoiceGuruTheme.accentOrange),
@@ -194,7 +202,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Good afternoon,', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w800)),
-              Text('Siddharth sanjay! ☀️', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w800, color: VoiceGuruTheme.primaryPurple)),
+              Text('${profile.childName}! ☀️', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w800, color: VoiceGuruTheme.primaryPurple)),
               const SizedBox(height: 8),
               Text('What would you like to explore today?', style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, fontWeight: FontWeight.w500)),
             ],

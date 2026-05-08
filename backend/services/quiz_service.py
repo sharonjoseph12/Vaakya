@@ -25,12 +25,24 @@ Example: [{{"question":"What is 2+2?","options":["A. 3","B. 4","C. 5","D. 6"],"c
     )
 
     raw = response.text.strip()
-    # Strip markdown code fences if Gemini wraps the JSON
-    if raw.startswith("```"):
-        raw = raw.split("\n", 1)[1]
-        raw = raw.rsplit("```", 1)[0].strip()
+    # Strip markdown code fences if Gemini wraps the JSON (handles ```json and ```)
+    if "```" in raw:
+        # Find first [ and last ] to extract the JSON array
+        start = raw.find('[')
+        end = raw.rfind(']') + 1
+        if start != -1 and end != -1:
+            raw = raw[start:end]
 
-    return json.loads(raw)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse Gemini quiz JSON: {e}. Raw output: {raw}")
+        # Return a simple fallback question if parsing fails
+        return [{
+            "question": "VoiceGuru is preparing your next challenge! For now, what is 10 plus 10?",
+            "options": ["A. 15", "B. 20", "C. 25", "D. 30"],
+            "correct_answer": "B"
+        }]
 
 
 async def evaluate_quiz(child_id: str, subject: str, score: int) -> dict:

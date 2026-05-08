@@ -1,11 +1,16 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
+from fastapi.middleware.cors import CORSMiddleware
 from routers import chat, admin, vision, leaderboard, report, gamification
 from routers import quiz as quiz_router
 from routers import youtube as youtube_router
 from services.report_service import send_weekly_reports
 import uvicorn
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 scheduler = BackgroundScheduler()
 
@@ -21,6 +26,15 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="VoiceGuru API", version="1.0.0", lifespan=lifespan)
+
+# CORS middleware for mobile/web connectivity
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(chat.router)
 app.include_router(vision.router)

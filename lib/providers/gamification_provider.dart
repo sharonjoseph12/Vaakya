@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/api_client.dart';
+import '../core/supabase_config.dart';
 
 class GamificationProvider extends ChangeNotifier {
   int _streakCount = 0;
@@ -11,6 +13,14 @@ class GamificationProvider extends ChangeNotifier {
   int get streakCount => _streakCount;
   List<String> get badges => _badges;
   bool get streakJustIncremented => _streakJustIncremented;
+
+  int _totalQuestions = 0;
+  int _totalStars = 0;
+  Map<String, int> _subjectBreakdown = {};
+
+  int get totalQuestions => _totalQuestions;
+  int get totalStars => _totalStars;
+  Map<String, int> get subjectBreakdown => _subjectBreakdown;
 
   // Badge definitions
   static const Map<String, Map<String, dynamic>> badgeDefinitions = {
@@ -36,17 +46,43 @@ class GamificationProvider extends ChangeNotifier {
     },
   };
 
-  Future<void> loadFromPrefs() async {
+  Future<void> loadFromPrefs(String profileId) async {
     final prefs = await SharedPreferences.getInstance();
     _streakCount = prefs.getInt('streak_count') ?? 0;
     _badges = prefs.getStringList('badges_unlocked') ?? [];
     _scienceQueryCount = prefs.getInt('science_query_count') ?? 0;
     _visionHintCount = prefs.getInt('vision_hint_count') ?? 0;
+    
+    // Also fetch remote stats
+    await fetchRemoteStats(profileId);
+    
     notifyListeners();
   }
 
+  Future<void> fetchRemoteStats(String profileId) async {
+    final response = await ApiClient.get('/api/v1/gamification/stats/$profileId');
+    if (response != null && response['status'] == 'success') {
+      final data = response['data'];
+      _totalQuestions = data['total_questions'] ?? 0;
+      _totalStars = data['total_stars'] ?? 0;
+      _subjectBreakdown = Map<String, int>.from(data['subject_breakdown'] ?? {});
+      notifyListeners();
+    }
+  }
+
+  Future<void> syncWithSupabase(String profileId) async {
+    try {
+      await SupabaseConfig.client.from('children').update({
+        'streak_count': _streakCount,
+        'badges_unlocked': _badges,
+      }).eq('id', profileId);
+    } catch (e) {
+      debugPrint('Sync failed: $e');
+    }
+  }
+
   /// Call this every time a question is asked. Checks if it's a new day.
-  Future<bool> onQuestionAsked({String? subject}) async {
+  Future<bool> onQuestionAsked({required String profileId, String? subject}) async {
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().substring(0, 10);
     final lastDate = prefs.getString('last_question_date') ?? '';
@@ -81,6 +117,12 @@ class GamificationProvider extends ChangeNotifier {
 
     // Check badge unlocks
     await _checkBadges(prefs);
+
+    // Sync to Supabase
+    if (profileId != null) {
+      await syncWithSupabase(profileId);
+      await fetchRemoteStats(profileId);
+    }
 
     notifyListeners();
     return _streakJustIncremented;
