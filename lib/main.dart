@@ -6,6 +6,8 @@ import 'core/theme.dart';
 import 'providers/chat_provider.dart';
 import 'providers/voice_provider.dart';
 import 'providers/profile_provider.dart';
+import 'providers/gamification_provider.dart';
+import 'providers/quiz_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/dashboard_screen.dart';
 
@@ -74,6 +76,8 @@ class VoiceGuruApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => VoiceProvider()),
+        ChangeNotifierProvider(create: (_) => GamificationProvider()),
+        ChangeNotifierProvider(create: (_) => QuizProvider()),
       ],
       child: MaterialApp(
         title: 'VoiceGuru',
