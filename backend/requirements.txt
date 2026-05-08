@@ -3,7 +3,11 @@ uvicorn
 pydantic
 pydantic-settings
 google-genai
-firebase-admin
+supabase
 chromadb
 python-multipart
 python-dotenv
+httpx
+apscheduler
+twilio
+PyPDF2
