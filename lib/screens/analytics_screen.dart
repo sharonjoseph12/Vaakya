@@ -1,244 +1,238 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../providers/profile_provider.dart';
+import '../providers/gamification_provider.dart';
+import '../core/theme.dart';
 
 class AnalyticsScreen extends StatelessWidget {
-  final List<Map<String, dynamic>> weeklyData;
-  final Map<String, int> subjectBreakdown;
-  final int totalQuestions;
-  final int streakCount;
-  final double quizAverage;
-
-  const AnalyticsScreen({
-    super.key,
-    required this.weeklyData,
-    required this.subjectBreakdown,
-    required this.totalQuestions,
-    required this.streakCount,
-    required this.quizAverage,
-  });
+  const AnalyticsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final profile = context.watch<ProfileProvider>();
+    final gamification = context.watch<GamificationProvider>();
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
+      backgroundColor: VoiceGuruTheme.backgroundLight,
       appBar: AppBar(
-        title: const Text('Analytics', style: TextStyle(fontWeight: FontWeight.w700)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        title: const Text('My Progress'),
         centerTitle: true,
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: () {}),
+        ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.only(bottom: 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Stat counters row
-            Row(
-              children: [
-                _statCard('📚', '$totalQuestions', 'Questions', const Color(0xFF6C63FF)),
-                const SizedBox(width: 12),
-                _statCard('🔥', '$streakCount', 'Day Streak', const Color(0xFFFF6584)),
-                const SizedBox(width: 12),
-                _statCard('📊', quizAverage.toStringAsFixed(1), 'Quiz Avg', const Color(0xFF00D2FF)),
-              ],
-            ).animate().fadeIn(duration: 400.ms),
+            // ── Promotion Card ────────────────────────────────────────────────
+            _buildPromotionCard(),
 
-            const SizedBox(height: 28),
-            const Text('Weekly Activity', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
+            // ── Stat Grid ─────────────────────────────────────────────────────
+            _buildStatGrid(profile, gamification),
 
-            // Bar chart
-            Container(
-              height: 220,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF161B22),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF30363D)),
-              ),
-              child: CustomPaint(
-                size: const Size(double.infinity, 188),
-                painter: _BarChartPainter(weeklyData),
-              ),
-            ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
+            // ── Streak Calendar ───────────────────────────────────────────────
+            _buildSectionHeader('Streak Calendar'),
+            _buildStreakCalendar(),
 
-            const SizedBox(height: 28),
-            const Text('Subject Breakdown', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
+            // ── Weekly Progress ───────────────────────────────────────────────
+            _buildSectionHeader('This Week'),
+            _buildWeeklyCard(),
 
-            // Pie chart
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF161B22),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF30363D)),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 140,
-                    height: 140,
-                    child: CustomPaint(
-                      painter: _PieChartPainter(subjectBreakdown),
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: subjectBreakdown.entries.toList().asMap().entries.map((e) {
-                        final colors = [
-                          const Color(0xFF6C63FF), const Color(0xFFFF6584),
-                          const Color(0xFF00D2FF), const Color(0xFFFFD700),
-                          const Color(0xFF00FF88),
-                        ];
-                        final color = colors[e.key % colors.length];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Row(children: [
-                            Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-                            const SizedBox(width: 10),
-                            Text(e.value.key, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                            const Spacer(),
-                            Text('${e.value.value}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-                          ]),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ),
-            ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
+            // ── Subjects Explored ─────────────────────────────────────────────
+            _buildSectionHeader('What I\'ve Explored'),
+            _buildSubjectBreakdown(),
+
+            // ── Achievements ──────────────────────────────────────────────────
+            _buildSectionHeader('My Achievements 🏆'),
+            _buildAchievementGrid(profile),
           ],
         ),
       ),
     );
   }
 
-  Widget _statCard(String emoji, String value, String label, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Column(children: [
-          Text(emoji, style: const TextStyle(fontSize: 24)),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(color: color, fontSize: 24, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-        ]),
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+      child: Text(title, style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: VoiceGuruTheme.textPrimary)),
+    );
+  }
+
+  Widget _buildPromotionCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [Colors.purple.shade50, Colors.blue.shade50]),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.purple.shade100, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          const Text('🚀', style: TextStyle(fontSize: 32)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text('Start your learning journey today!', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: Colors.purple.shade800, fontSize: 16)),
+          ),
+        ],
+      ),
+    ).animate().fadeIn().slideX();
+  }
+
+  Widget _buildStatGrid(ProfileProvider profile, GamificationProvider gamification) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          _buildStatCard('Day Streak', '${profile.streakCount}', VoiceGuruTheme.streakGradient, '🔥'),
+          const SizedBox(width: 12),
+          _buildStatCard('Stars Earned', '0', VoiceGuruTheme.starGradient, '⭐'),
+          const SizedBox(width: 12),
+          _buildStatCard('Questions', '0', VoiceGuruTheme.questionGradient, '📚'),
+        ],
       ),
     );
   }
-}
 
-class _BarChartPainter extends CustomPainter {
-  final List<Map<String, dynamic>> data;
-  _BarChartPainter(this.data);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (data.isEmpty) return;
-
-    final maxVal = data.map((d) => (d['count'] as int? ?? 0)).reduce(max).toDouble();
-    if (maxVal == 0) return;
-
-    final barWidth = (size.width - 40) / data.length - 8;
-    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-    for (int i = 0; i < data.length && i < 7; i++) {
-      final count = (data[i]['count'] as int? ?? 0).toDouble();
-      final barHeight = (count / maxVal) * (size.height - 40);
-      final x = 20.0 + i * (barWidth + 8);
-      final y = size.height - 30 - barHeight;
-
-      // Bar gradient
-      final paint = Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [Color(0xFF6C63FF), Color(0xFF8B7CFF)],
-        ).createShader(Rect.fromLTWH(x, y, barWidth, barHeight));
-
-      final rr = RRect.fromRectAndCorners(
-        Rect.fromLTWH(x, y, barWidth, barHeight),
-        topLeft: const Radius.circular(6),
-        topRight: const Radius.circular(6),
-      );
-      canvas.drawRRect(rr, paint);
-
-      // Day label
-      final tp = TextPainter(
-        text: TextSpan(text: i < days.length ? days[i] : '', style: const TextStyle(color: Colors.white38, fontSize: 11)),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, Offset(x + barWidth / 2 - tp.width / 2, size.height - 20));
-
-      // Count label
-      if (count > 0) {
-        final cp = TextPainter(
-          text: TextSpan(text: '${count.toInt()}', style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        cp.paint(canvas, Offset(x + barWidth / 2 - cp.width / 2, y - 18));
-      }
-    }
+  Widget _buildStatCard(String label, String value, LinearGradient gradient, String icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: gradient.colors[0].withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 20)),
+            const SizedBox(height: 12),
+            Text(value, style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+            Text(label, style: GoogleFonts.outfit(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
+  Widget _buildStreakCalendar() {
+    final days = ['S', 'S', 'M', 'T', 'W', 'T', 'F'];
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)]),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(7, (i) => Column(
+          children: [
+            Container(
+              width: 36, height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: i == 6 ? VoiceGuruTheme.accentOrange.withValues(alpha: 0.1) : VoiceGuruTheme.backgroundLight, border: i == 6 ? Border.all(color: VoiceGuruTheme.accentOrange) : null),
+              child: i == 6 ? const Icon(Icons.local_fire_department_rounded, size: 20, color: VoiceGuruTheme.accentOrange) : Text(days[i], style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: VoiceGuruTheme.textSecondary)),
+            ),
+            const SizedBox(height: 8),
+            Text(days[i], style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: i == 6 ? VoiceGuruTheme.accentOrange : VoiceGuruTheme.textSecondary)),
+          ],
+        )),
+      ),
+    );
+  }
 
-class _PieChartPainter extends CustomPainter {
-  final Map<String, int> data;
-  _PieChartPainter(this.data);
+  Widget _buildWeeklyCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('This Week', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 18)),
+              Text('2026-05-02 – 2026-05-08', style: GoogleFonts.outfit(fontSize: 12, color: VoiceGuruTheme.textSecondary)),
+            ],
+          ),
+          const SizedBox(height: 40),
+          Text('Start learning to see your progress!', style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, fontSize: 14)),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (data.isEmpty) return;
+  Widget _buildSubjectBreakdown() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+      child: Column(
+        children: [
+          _buildSubjectRow('Math', '📐', 0, Colors.blue),
+          _buildSubjectRow('Science', '🔬', 0, Colors.green),
+          _buildSubjectRow('Social Studies', '🌍', 0, Colors.orange),
+          _buildSubjectRow('Other', '💡', 0, Colors.red),
+        ],
+      ),
+    );
+  }
 
-    final total = data.values.reduce((a, b) => a + b).toDouble();
-    if (total == 0) return;
+  Widget _buildSubjectRow(String name, String icon, double progress, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 12),
+              Expanded(child: Text(name, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 15))),
+              Text('0 questions', style: GoogleFonts.outfit(fontSize: 13, color: VoiceGuruTheme.textSecondary)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: progress, backgroundColor: color.withValues(alpha: 0.1), valueColor: AlwaysStoppedAnimation(color), minHeight: 8)),
+        ],
+      ),
+    );
+  }
 
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = min(size.width, size.height) / 2 - 4;
-    final colors = [
-      const Color(0xFF6C63FF), const Color(0xFFFF6584),
-      const Color(0xFF00D2FF), const Color(0xFFFFD700),
-      const Color(0xFF00FF88),
+  Widget _buildAchievementGrid(ProfileProvider profile) {
+    final achievements = [
+      {'name': 'First Question', 'icon': '🌱', 'locked': true},
+      {'name': '3 Day Streak', 'icon': '🔥', 'locked': true},
+      {'name': '10 Questions', 'icon': '⭐', 'locked': true},
+      {'name': 'Science Explorer', 'icon': '🔬', 'locked': true},
     ];
 
-    double startAngle = -pi / 2;
-    int i = 0;
-    for (final entry in data.entries) {
-      final sweep = (entry.value / total) * 2 * pi;
-      final paint = Paint()
-        ..color = colors[i % colors.length]
-        ..style = PaintingStyle.fill;
-
-      canvas.drawArc(Rect.fromCircle(center: center, radius: radius), startAngle, sweep, true, paint);
-
-      // Gap line
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle, sweep, true,
-        Paint()..color = const Color(0xFF161B22)..style = PaintingStyle.stroke..strokeWidth = 3,
-      );
-
-      startAngle += sweep;
-      i++;
-    }
-
-    // Inner circle for donut effect
-    canvas.drawCircle(center, radius * 0.55, Paint()..color = const Color(0xFF161B22));
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.2),
+      itemCount: achievements.length,
+      itemBuilder: (context, index) {
+        final ach = achievements[index];
+        return Container(
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(width: 60, height: 60, decoration: BoxDecoration(color: VoiceGuruTheme.backgroundLight, shape: BoxShape.circle)),
+                  Text(ach['icon'] as String, style: const TextStyle(fontSize: 30)),
+                  if (ach['locked'] as bool) const Icon(Icons.lock, size: 20, color: Colors.black26),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(ach['name'] as String, style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: VoiceGuruTheme.textSecondary)),
+            ],
+          ),
+        );
+      },
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

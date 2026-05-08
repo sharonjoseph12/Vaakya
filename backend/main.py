@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
-from routers import chat, admin, vision
+from routers import chat, admin, vision, leaderboard, report, gamification
 from routers import quiz as quiz_router
 from routers import youtube as youtube_router
 from services.report_service import send_weekly_reports
@@ -27,6 +27,9 @@ app.include_router(vision.router)
 app.include_router(admin.router)
 app.include_router(quiz_router.router)
 app.include_router(youtube_router.router)
+app.include_router(leaderboard.router)
+app.include_router(report.router)
+app.include_router(gamification.router)
 
 
 @app.get("/")

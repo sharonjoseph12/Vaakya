@@ -1,89 +1,53 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../core/theme.dart';
 import '../providers/chat_provider.dart';
 import '../providers/voice_provider.dart';
 import '../providers/profile_provider.dart';
+import '../core/supabase_config.dart';
 import '../models/message_model.dart';
 import 'camera_screen.dart';
 import 'profile_screen.dart';
+import 'quiz_screen.dart';
+import '../core/theme.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen>
-    with TickerProviderStateMixin {
-  final ScrollController _scrollCtrl = ScrollController();
-  late AnimationController _orbPulse;
-  late AnimationController _orbRotation;
+class _DashboardScreenState extends State<DashboardScreen> {
+  final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _orbPulse = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1500))
-      ..repeat(reverse: true);
-    _orbRotation = AnimationController(
-        vsync: this, duration: const Duration(seconds: 2))
-      ..repeat();
-
-    // Wire up providers
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final chat = context.read<ChatProvider>();
-      final voice = context.read<VoiceProvider>();
       final profile = context.read<ProfileProvider>();
+      final chat = context.read<ChatProvider>();
 
-      // Auto-scroll on new message
-      chat.onNewMessage = _scrollToBottom;
+      final session = SupabaseConfig.client.auth.currentSession;
+      if (session != null) {
+        profile.loadFirstChildForParent(session.user.id);
+      } else {
+        profile.useDemoProfile();
+      }
 
-      // Init voice engine
-      voice.init();
-
-      // On speech result → send to backend
-      voice.onSpeechResult = (text) async {
-        voice.setProcessing();
-        final reply = await chat.sendMessage(
-          query: text,
-          profileId: profile.profileId,
-          subject: 'General',
-          language: profile.language,
-          learnerLevel: profile.learnerLevel,
-        );
-        if (reply != null) {
-          await voice.speak(reply, language: profile.language);
-        } else {
-          voice.setIdle();
-        }
-      };
-
-      // Load demo profile
-      profile.useDemoProfile();
-      // Welcome message
-      chat.addAiMessage(
-          "Hi! I'm VoiceGuru 🎓 Tap the mic button and ask me anything about your studies!");
+      if (chat.messages.isEmpty) {
+        chat.addAiMessage("Hi! I'm VoiceGuru 🎓 Tap the mic button and ask me anything about your studies!");
+      }
     });
-  }
-
-  @override
-  void dispose() {
-    _scrollCtrl.dispose();
-    _orbPulse.dispose();
-    _orbRotation.dispose();
-    super.dispose();
   }
 
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollCtrl.hasClients) {
-        _scrollCtrl.animateTo(
-          _scrollCtrl.position.maxScrollExtent,
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -91,139 +55,154 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
-  void _onOrbTap() {
-    final voice = context.read<VoiceProvider>();
-    if (voice.state == VoiceState.listening) {
-      voice.stopListening();
-    } else if (voice.state == VoiceState.speaking) {
-      voice.stopSpeaking();
-    } else if (voice.state == VoiceState.idle) {
-      voice.startListening();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileProvider>();
+    final chat = context.watch<ChatProvider>();
+    final voice = context.watch<VoiceProvider>();
 
     return Scaffold(
+      backgroundColor: VoiceGuruTheme.backgroundLight,
       appBar: AppBar(
-        title: Row(children: [
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              gradient: VoiceGuruTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(10),
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            const Icon(Icons.school, color: VoiceGuruTheme.primaryPurple),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Text('VoiceGuru', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w800, color: VoiceGuruTheme.primaryPurple)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: VoiceGuruTheme.successGreen.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: VoiceGuruTheme.successGreen.withValues(alpha: 0.2)),
+                      ),
+                      child: Text('Lv.1 Making progress 📚', style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600, color: VoiceGuruTheme.successGreen)),
+                    ),
+                  ],
+                ),
+                Text('Hi ${profile.childName} 👋', style: GoogleFonts.outfit(fontSize: 14, color: VoiceGuruTheme.textSecondary, fontWeight: FontWeight.w500)),
+              ],
             ),
-            child: const Icon(Icons.auto_awesome, size: 18, color: Colors.white),
-          ),
-          const SizedBox(width: 10),
-          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('VoiceGuru',
-                style: GoogleFonts.outfit(
-                    fontSize: 18, fontWeight: FontWeight.w700,
-                    color: Colors.white)),
-            Text('Hi, ${profile.childName}',
-                style: GoogleFonts.outfit(
-                    fontSize: 12, color: VoiceGuruTheme.textSecondary)),
-          ]),
-        ]),
+          ],
+        ),
         actions: [
-          if (profile.streakCount > 0)
-            Container(
-              margin: const EdgeInsets.only(right: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: VoiceGuruTheme.warningAmber.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(20),
+          IconButton(icon: const Icon(Icons.leaderboard_rounded), onPressed: () => Navigator.pushNamed(context, '/leaderboard')),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: GestureDetector(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: VoiceGuruTheme.primaryPurple,
+                child: Text(profile.childName.isNotEmpty ? profile.childName[0].toUpperCase() : 'S', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Text('🔥', style: TextStyle(fontSize: 14)),
-                const SizedBox(width: 4),
-                Text('${profile.streakCount}',
-                    style: GoogleFonts.outfit(
-                        color: VoiceGuruTheme.warningAmber,
-                        fontWeight: FontWeight.w700, fontSize: 13)),
-              ]),
             ),
-          IconButton(
-            icon: const Icon(Icons.camera_alt_rounded),
-            tooltip: 'Scan Homework',
-            onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const CameraScreen())),
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_rounded),
-            tooltip: 'Profile',
-            onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen())),
           ),
         ],
       ),
-      body: Column(children: [
-        // Offline banner
-        Consumer<ChatProvider>(builder: (context, chat, child) {
-          if (!chat.isOffline) return const SizedBox.shrink();
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            color: VoiceGuruTheme.warningAmber.withValues(alpha: 0.15),
-            child: Text('📶  Offline mode — using cached answers',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
-                    fontSize: 12, color: VoiceGuruTheme.warningAmber)),
-          );
-        }),
+      body: Column(
+        children: [
+          // ── Streak Progress Card ──────────────────────────────────────────
+          _buildStreakCard(),
 
-        // Chat messages
-        Expanded(
-          child: Consumer<ChatProvider>(builder: (context, chat, child) {
-            return ListView.builder(
-              controller: _scrollCtrl,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              itemCount: chat.messages.length + (chat.isLoading ? 1 : 0),
-              itemBuilder: (context, i) {
-                if (i == chat.messages.length && chat.isLoading) {
-                  return _buildShimmerBubble();
-                }
-                return _buildChatBubble(chat.messages[i]);
+          // ── Chat View ─────────────────────────────────────────────────────
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(20),
+              itemCount: chat.messages.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) return _buildIntroOwl();
+                final msg = chat.messages[index - 1];
+                return _buildChatBubble(msg);
               },
-            );
-          }),
-        ),
+            ),
+          ),
 
-        // Voice state indicator
-        Consumer<VoiceProvider>(builder: (context, voice, child) {
-          if (voice.state == VoiceState.listening &&
-              voice.currentWords.isNotEmpty) {
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: VoiceGuruTheme.surfaceCard,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(children: [
-                const Icon(Icons.mic, color: VoiceGuruTheme.errorRed, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(voice.currentWords,
-                      style: GoogleFonts.outfit(
-                          color: Colors.white, fontSize: 14),
-                      maxLines: 2, overflow: TextOverflow.ellipsis),
-                ),
-              ]),
-            ).animate().fadeIn(duration: 200.ms);
-          }
-          return const SizedBox.shrink();
-        }),
-
-        const SizedBox(height: 8),
-        // Voice Orb
-        _buildVoiceOrb(),
-        const SizedBox(height: 20),
-      ]),
+          // ── Greeting & Input Area ────────────────────────────────────────
+          _buildInputArea(voice, chat, profile),
+        ],
+      ),
+      bottomNavigationBar: _buildBottomNav(),
     );
+  }
+
+  Widget _buildStreakCard() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 20, offset: const Offset(0, 8))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: VoiceGuruTheme.primaryPurple.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.bedtime_rounded, color: VoiceGuruTheme.primaryPurple),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Start your streak today!', style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16)),
+                Text('0/5 today', style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, fontSize: 13)),
+              ],
+            ),
+          ),
+          Row(
+            children: List.generate(5, (i) => Container(
+              margin: const EdgeInsets.only(left: 4),
+              width: 12, height: 12,
+              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.black12), color: Colors.transparent),
+            )),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  Widget _buildIntroOwl() {
+    return Column(
+      children: [
+        const Icon(Icons.emoji_emotions, size: 80, color: VoiceGuruTheme.accentOrange),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)]),
+          child: Text(
+            "I'm VoiceGuru, your study buddy! 🎒\nI can answer questions and read your homework!",
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w500, height: 1.4),
+          ),
+        ),
+        const SizedBox(height: 40),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Good afternoon,', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w800)),
+              Text('Siddharth sanjay! ☀️', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w800, color: VoiceGuruTheme.primaryPurple)),
+              const SizedBox(height: 8),
+              Text('What would you like to explore today?', style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    ).animate().fadeIn(duration: 800.ms);
   }
 
   Widget _buildChatBubble(MessageModel msg) {
@@ -231,190 +210,118 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          gradient: isUser ? VoiceGuruTheme.userBubbleGradient : null,
-          color: isUser ? null : VoiceGuruTheme.surfaceCard,
+          color: isUser ? VoiceGuruTheme.primaryPurple : Colors.white,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(18),
-            topRight: const Radius.circular(18),
-            bottomLeft: Radius.circular(isUser ? 18 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 18),
+            topLeft: const Radius.circular(20),
+            topRight: const Radius.circular(20),
+            bottomLeft: Radius.circular(isUser ? 20 : 0),
+            bottomRight: Radius.circular(isUser ? 0 : 20),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: (isUser ? VoiceGuruTheme.primaryPurple : Colors.black)
-                  .withValues(alpha: 0.15),
-              blurRadius: 8, offset: const Offset(0, 3)),
-          ],
+          boxShadow: [if (!isUser) BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 5)],
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(msg.text,
-              style: GoogleFonts.outfit(
-                  color: Colors.white, fontSize: 14.5, height: 1.45)),
-          const SizedBox(height: 4),
-          Text(
-            '${msg.timestamp.hour.toString().padLeft(2, '0')}:'
-            '${msg.timestamp.minute.toString().padLeft(2, '0')}',
-            style: GoogleFonts.outfit(
-                color: Colors.white.withValues(alpha: 0.45), fontSize: 10),
-          ),
-        ]),
+        child: Text(msg.text, style: GoogleFonts.outfit(color: isUser ? Colors.white : VoiceGuruTheme.textPrimary, fontSize: 15, height: 1.4)),
       ),
-    ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.1, end: 0);
+    ).animate().scale(duration: 300.ms, curve: Curves.easeOut);
   }
 
-  Widget _buildShimmerBubble() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Shimmer.fromColors(
-        baseColor: VoiceGuruTheme.surfaceCard,
-        highlightColor: VoiceGuruTheme.surfaceElevated,
-        child: Container(
-          width: MediaQuery.of(context).size.width * 0.65,
-          height: 60,
-          margin: const EdgeInsets.only(bottom: 10),
-          decoration: BoxDecoration(
-            color: VoiceGuruTheme.surfaceCard,
-            borderRadius: BorderRadius.circular(18),
+  Widget _buildInputArea(VoiceProvider voice, ChatProvider chat, ProfileProvider profile) {
+    final isListening = voice.state == VoiceState.listening;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -2))]),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: isListening ? Colors.red : VoiceGuruTheme.primaryPurple,
+            child: IconButton(
+              icon: Icon(isListening ? Icons.stop : Icons.mic, color: Colors.white),
+              onPressed: () {
+                if (isListening) {
+                  voice.stopListening();
+                } else {
+                  voice.onSpeechResult = (text) {
+                    if (text.isNotEmpty) {
+                      chat.sendMessage(
+                        query: text,
+                        profileId: profile.profileId,
+                        subject: 'General',
+                        language: profile.language,
+                        learnerLevel: profile.learnerLevel,
+                      );
+                    }
+                  };
+                  voice.startListening();
+                }
+              },
+            ),
           ),
-        ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(color: VoiceGuruTheme.backgroundLight, borderRadius: BorderRadius.circular(30)),
+              child: Row(
+                children: [
+                  IconButton(icon: const Icon(Icons.add_photo_alternate_outlined, color: VoiceGuruTheme.textSecondary), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CameraScreen()))),
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      decoration: const InputDecoration(hintText: 'Type your question...', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 12)),
+                      onSubmitted: (val) {
+                        if (val.trim().isNotEmpty) {
+                          chat.sendMessage(
+                            query: val.trim(),
+                            profileId: profile.profileId,
+                            subject: 'General',
+                            language: profile.language,
+                            learnerLevel: profile.learnerLevel,
+                          );
+                          _controller.clear();
+                          _scrollToBottom();
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildVoiceOrb() {
-    return Consumer<VoiceProvider>(builder: (context, voice, child) {
-      return GestureDetector(
-        onTap: _onOrbTap,
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_orbPulse, _orbRotation]),
-          builder: (context, _) {
-            return _orbContent(voice.state);
-          },
-        ),
-      );
-    });
-  }
-
-  Widget _orbContent(VoiceState state) {
-    final double size = 72;
-    final IconData icon;
-    final List<BoxShadow> shadows;
-    Widget? overlay;
-
-    switch (state) {
-      case VoiceState.idle:
-        icon = Icons.mic_none_rounded;
-        shadows = [
-          BoxShadow(
-            color: const Color(0xFF3B82F6)
-                .withValues(alpha: 0.25 + _orbPulse.value * 0.25),
-            blurRadius: 20 + _orbPulse.value * 15,
-            spreadRadius: 2,
-          ),
-        ];
-        break;
-      case VoiceState.listening:
-        icon = Icons.mic_rounded;
-        shadows = [
-          BoxShadow(
-            color: VoiceGuruTheme.errorRed
-                .withValues(alpha: 0.3 + _orbPulse.value * 0.35),
-            blurRadius: 24 + _orbPulse.value * 18,
-            spreadRadius: 4,
-          ),
-        ];
-        // Ripple ring
-        overlay = Container(
-          width: size + 20 + _orbPulse.value * 16,
-          height: size + 20 + _orbPulse.value * 16,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: VoiceGuruTheme.errorRed
-                  .withValues(alpha: 0.5 - _orbPulse.value * 0.4),
-              width: 2,
+  Widget _buildBottomNav() {
+    return BottomNavigationBar(
+      backgroundColor: Colors.white,
+      selectedItemColor: VoiceGuruTheme.primaryPurple,
+      unselectedItemColor: VoiceGuruTheme.textSecondary,
+      selectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.auto_awesome_rounded), label: 'Learn'),
+        BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded), label: 'Progress'),
+        BottomNavigationBarItem(icon: Icon(Icons.quiz_rounded), label: 'Daily Quiz'),
+      ],
+      onTap: (index) {
+        if (index == 1) Navigator.pushNamed(context, '/analytics');
+        if (index == 2) {
+          final profile = context.read<ProfileProvider>();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => QuizScreen(
+                childId: profile.profileId,
+                subject: 'General',
+              ),
             ),
-          ),
-        );
-        break;
-      case VoiceState.processing:
-        icon = Icons.hourglass_top_rounded;
-        shadows = [
-          BoxShadow(
-            color: VoiceGuruTheme.primaryPurple.withValues(alpha: 0.4),
-            blurRadius: 25, spreadRadius: 3),
-        ];
-        // Rotating ring
-        overlay = Transform.rotate(
-          angle: _orbRotation.value * 2 * math.pi,
-          child: Container(
-            width: size + 14, height: size + 14,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.transparent, width: 3),
-              gradient: SweepGradient(colors: [
-                VoiceGuruTheme.primaryPurple,
-                VoiceGuruTheme.secondaryCyan,
-                VoiceGuruTheme.primaryPurple.withValues(alpha: 0),
-              ]),
-            ),
-          ),
-        );
-        break;
-      case VoiceState.speaking:
-        icon = Icons.volume_up_rounded;
-        shadows = [
-          BoxShadow(
-            color: VoiceGuruTheme.successGreen
-                .withValues(alpha: 0.2 + _orbPulse.value * 0.2),
-            blurRadius: 20 + _orbPulse.value * 12,
-            spreadRadius: 2,
-          ),
-        ];
-        break;
-    }
-
-    final gradient = switch (state) {
-      VoiceState.idle => VoiceGuruTheme.orbIdleGradient,
-      VoiceState.listening => VoiceGuruTheme.orbListeningGradient,
-      VoiceState.processing => VoiceGuruTheme.orbProcessingGradient,
-      VoiceState.speaking => const LinearGradient(
-          colors: [Color(0xFF10B981), Color(0xFF059669)]),
-    };
-
-    final label = switch (state) {
-      VoiceState.idle => 'Tap to ask',
-      VoiceState.listening => 'Listening…',
-      VoiceState.processing => 'Thinking…',
-      VoiceState.speaking => 'Speaking…',
-    };
-
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      SizedBox(
-        width: size + 30, height: size + 30,
-        child: Stack(alignment: Alignment.center, children: [
-          overlay ?? const SizedBox.shrink(),
-          Container(
-            width: size, height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: gradient,
-              boxShadow: shadows,
-            ),
-            child: Icon(icon, size: 30, color: Colors.white),
-          ),
-        ]),
-      ),
-      const SizedBox(height: 6),
-      Text(label,
-          style: GoogleFonts.outfit(
-              color: VoiceGuruTheme.textSecondary,
-              fontSize: 11, fontWeight: FontWeight.w500)),
-    ]);
+          );
+        }
+      },
+    );
   }
 }

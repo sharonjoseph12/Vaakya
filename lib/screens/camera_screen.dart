@@ -60,6 +60,7 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: VoiceGuruTheme.backgroundLight,
       appBar: AppBar(
         title: Text('Scan Homework',
             style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
@@ -81,7 +82,7 @@ class _CameraScreenState extends State<CameraScreen> {
                       end: const Offset(1, 1))
                 : Container(
                     decoration: BoxDecoration(
-                      color: VoiceGuruTheme.surfaceCard,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                           color: VoiceGuruTheme.surfaceElevated, width: 2),
@@ -117,7 +118,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(children: [
-                const Icon(Icons.warning_amber_rounded,
+                Icon(Icons.warning_amber_rounded,
                     color: VoiceGuruTheme.warningAmber, size: 20),
                 const SizedBox(width: 8),
                 Expanded(child: Text(_error!,
@@ -152,7 +153,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 label: const Text('Gallery'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: VoiceGuruTheme.primaryPurpleLight,
-                  side: const BorderSide(
+                  side: BorderSide(
                       color: VoiceGuruTheme.primaryPurpleLight),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(

@@ -22,8 +22,8 @@ graph TD
 | Branch | Owner | Scope |
 |---|---|---|
 | `feat/backend-ai` | **Member 1** | FastAPI + Supabase DB + RAG + Gemini + Vision |
-| `feat/flutter-ui` | **Member 2** | Flutter app shell, Voice engine, Dashboard, Offline SQLite |
-| `feat/gamification-reports` | **Member 3** | Gamification, Quizzes, Twilio WhatsApp, Analytics |
+| `feat/flutter-ui` | **Member 2** | Flutter app shell, Voice engine, Dashboard, Offline SQLite, **Leaderboard (NEW)** |
+| `feat/gamification-reports` | **Member 3** | Gamification, Quizzes, Twilio WhatsApp, Analytics, **Dynamic Profile Integration (NEW)** |
 
 ---
 

@@ -1,7 +1,7 @@
 import asyncio
 import os
 import argparse
-from services.rag_service import ingest_text
+from services.rag_service import ingest_textbook as ingest_text
 
 async def main():
     parser = argparse.ArgumentParser(description="Ingest local textbooks into VoiceGuru ChromaDB")

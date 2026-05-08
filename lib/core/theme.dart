@@ -5,172 +5,126 @@ class VoiceGuruTheme {
   VoiceGuruTheme._();
 
   // ── Color Palette ──────────────────────────────────────────────────
-  static const Color primaryPurple = Color(0xFF7C3AED);
-  static const Color primaryPurpleLight = Color(0xFF9F67FF);
-  static const Color secondaryCyan = Color(0xFF06B6D4);
-  static const Color surfaceDark = Color(0xFF121218);
-  static const Color surfaceCard = Color(0xFF1E1E2A);
-  static const Color surfaceElevated = Color(0xFF2A2A3C);
-  static const Color textPrimary = Color(0xFFF1F1F6);
-  static const Color textSecondary = Color(0xFF9CA3AF);
-  static const Color errorRed = Color(0xFFEF4444);
+  static const Color primaryPurple = Color(0xFF6366F1); // Indigo
+  static const Color secondaryCyan = Color(0xFF22D3EE);
+  static const Color accentOrange = Color(0xFFF97316);
+  static const Color accentYellow = Color(0xFFFBBF24);
+  static const Color accentBlue = Color(0xFF3B82F6);
+  
+  static const Color backgroundLight = Color(0xFFF8FAFC);
+  static const Color surfaceWhite = Colors.white;
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF64748B);
+  
+  static const Color surfaceDark = Color(0xFF0F172A);
+  static const Color surfaceCard = Color(0xFF1E293B);
+
+  // ── Compatibility Getters ──────────────────────────────────────────
   static const Color successGreen = Color(0xFF10B981);
+  static const Color errorRed = Color(0xFFEF4444);
   static const Color warningAmber = Color(0xFFF59E0B);
+  static const Color primaryPurpleLight = Color(0xFF818CF8);
+  static const Color surfaceElevated = Color(0xFFF1F5F9);
+  
+  static const LinearGradient orbIdleGradient = LinearGradient(
+    colors: [primaryPurple, Color(0xFF818CF8)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   // ── Gradients ──────────────────────────────────────────────────────
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primaryPurple, Color(0xFF6D28D9)],
+    colors: [primaryPurple, Color(0xFF4F46E5)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient userBubbleGradient = LinearGradient(
-    colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)],
+  static const LinearGradient streakGradient = LinearGradient(
+    colors: [Color(0xFFF97316), Color(0xFFEA580C)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient orbIdleGradient = LinearGradient(
-    colors: [Color(0xFF3B82F6), Color(0xFF06B6D4)],
+  static const LinearGradient starGradient = LinearGradient(
+    colors: [Color(0xFFFBBF24), Color(0xFFD97706)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient orbListeningGradient = LinearGradient(
-    colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient orbProcessingGradient = LinearGradient(
-    colors: [primaryPurple, secondaryCyan, primaryPurpleLight],
+  static const LinearGradient questionGradient = LinearGradient(
+    colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   // ── Theme Data ─────────────────────────────────────────────────────
-  static ThemeData get darkTheme {
-    final textTheme = GoogleFonts.outfitTextTheme(
-      ThemeData.dark().textTheme,
-    );
+  static ThemeData get lightTheme {
+    final textTheme = GoogleFonts.outfitTextTheme();
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
-      colorScheme: const ColorScheme.dark(
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryPurple,
         primary: primaryPurple,
-        onPrimary: Colors.white,
         secondary: secondaryCyan,
-        onSecondary: Colors.white,
-        surface: surfaceDark,
-        onSurface: textPrimary,
-        error: errorRed,
-        onError: Colors.white,
-        surfaceContainerHighest: surfaceCard,
+        surface: backgroundLight,
       ),
-      scaffoldBackgroundColor: surfaceDark,
+      scaffoldBackgroundColor: backgroundLight,
       textTheme: textTheme.copyWith(
         headlineLarge: textTheme.headlineLarge?.copyWith(
           color: textPrimary,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -1,
         ),
         headlineMedium: textTheme.headlineMedium?.copyWith(
           color: textPrimary,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
         titleLarge: textTheme.titleLarge?.copyWith(
           color: textPrimary,
           fontWeight: FontWeight.w600,
         ),
-        titleMedium: textTheme.titleMedium?.copyWith(
-          color: textPrimary,
-          fontWeight: FontWeight.w500,
-        ),
         bodyLarge: textTheme.bodyLarge?.copyWith(color: textPrimary),
         bodyMedium: textTheme.bodyMedium?.copyWith(color: textSecondary),
-        labelLarge: textTheme.labelLarge?.copyWith(
-          color: textPrimary,
-          fontWeight: FontWeight.w600,
-        ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: surfaceDark,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: GoogleFonts.outfit(
-          fontSize: 22,
+          fontSize: 20,
           fontWeight: FontWeight.w700,
           color: textPrimary,
         ),
         iconTheme: const IconThemeData(color: textPrimary),
       ),
       cardTheme: CardThemeData(
-        color: surfaceCard,
-        elevation: 0,
+        color: surfaceWhite,
+        elevation: 2,
+        shadowColor: Colors.black.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: primaryPurple,
-        foregroundColor: Colors.white,
-        elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: surfaceCard,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: surfaceElevated, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: primaryPurple, width: 2),
-        ),
-        hintStyle: GoogleFonts.outfit(color: textSecondary, fontSize: 14),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryPurple,
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
           ),
           textStyle: GoogleFonts.outfit(
-            fontSize: 16,
             fontWeight: FontWeight.w600,
+            fontSize: 16,
           ),
         ),
-      ),
-      chipTheme: ChipThemeData(
-        backgroundColor: surfaceCard,
-        selectedColor: primaryPurple.withValues(alpha: 0.3),
-        labelStyle: GoogleFonts.outfit(color: textPrimary, fontSize: 13),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        side: BorderSide(color: surfaceElevated),
-      ),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: surfaceElevated,
-        contentTextStyle: GoogleFonts.outfit(color: textPrimary),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }
+
+  // Compatibility getter for darkTheme
+  static ThemeData get darkTheme => lightTheme; // For now fallback to light
 }

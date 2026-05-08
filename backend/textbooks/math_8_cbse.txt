@@ -1,0 +1,10 @@
+Algebra: Linear Equations in One Variable.
+A linear equation is an equation of the form ax + b = 0, where a and b are real numbers and a != 0.
+To solve for x, subtract b from both sides: ax = -b, then divide by a: x = -b/a.
+
+Geometry: Understanding Quadrilaterals.
+A polygon with four sides is called a quadrilateral.
+The sum of the angles of a quadrilateral is 360 degrees.
+Types of quadrilaterals: Trapezium, Parallelogram, Rectangle, Rhombus, Square.
+A parallelogram is a quadrilateral whose opposite sides are parallel.
+In a parallelogram, opposite sides are equal and opposite angles are equal.

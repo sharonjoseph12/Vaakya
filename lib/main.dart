@@ -8,8 +8,12 @@ import 'providers/voice_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/gamification_provider.dart';
 import 'providers/quiz_provider.dart';
+import 'providers/leaderboard_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/leaderboard_screen.dart';
+import 'screens/analytics_screen.dart';
+import 'screens/quiz_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +24,7 @@ void main() async {
   // Custom error widget — friendly screen instead of Red Screen of Death
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return Material(
-      color: VoiceGuruTheme.surfaceDark,
+      color: VoiceGuruTheme.backgroundLight,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -42,7 +46,7 @@ void main() async {
                 'Oops! VoiceGuru needs\na quick nap 😴',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
-                  color: Colors.white,
+                  color: VoiceGuruTheme.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                 ),
@@ -78,15 +82,18 @@ class VoiceGuruApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => VoiceProvider()),
         ChangeNotifierProvider(create: (_) => GamificationProvider()),
         ChangeNotifierProvider(create: (_) => QuizProvider()),
+        ChangeNotifierProvider(create: (_) => LeaderboardProvider()),
       ],
       child: MaterialApp(
         title: 'VoiceGuru',
         debugShowCheckedModeBanner: false,
-        theme: VoiceGuruTheme.darkTheme,
+        theme: VoiceGuruTheme.lightTheme,
         initialRoute: '/auth',
         routes: {
           '/auth': (_) => const AuthScreen(),
           '/dashboard': (_) => const DashboardScreen(),
+          '/leaderboard': (_) => const LeaderboardScreen(),
+          '/analytics': (_) => const AnalyticsScreen(),
         },
       ),
     );

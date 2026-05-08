@@ -1,254 +1,245 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../core/theme.dart';
 import '../providers/profile_provider.dart';
+import '../core/theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late String _board;
-  late String _language;
-  late String _level;
-  late String _grade;
-  late TextEditingController _nameCtrl;
-  bool _saving = false;
-
-  static const boards = ['CBSE', 'ICSE', 'STATE'];
-  static const languages = [
-    {'code': 'en-IN', 'label': 'English'},
-    {'code': 'hi-IN', 'label': 'हिन्दी'},
-    {'code': 'ta-IN', 'label': 'தமிழ்'},
-    {'code': 'te-IN', 'label': 'తెలుగు'},
-    {'code': 'kn-IN', 'label': 'ಕನ್ನಡ'},
-  ];
-  static const levels = ['Beginner', 'Intermediate', 'Advanced'];
-  static const grades = ['5', '6', '7', '8', '9', '10', '11', '12'];
+  late TextEditingController _nameController;
+  late TextEditingController _whatsappController;
+  String _selectedClass = 'Class 9';
 
   @override
   void initState() {
     super.initState();
-    final p = context.read<ProfileProvider>();
-    _board = p.board;
-    _language = p.language;
-    _level = p.learnerLevel;
-    _grade = p.grade;
-    _nameCtrl = TextEditingController(text: p.childName);
+    final profile = context.read<ProfileProvider>();
+    _nameController = TextEditingController(text: profile.childName);
+    _whatsappController = TextEditingController();
+    _selectedClass = 'Class ${profile.grade}';
   }
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
+    _nameController.dispose();
+    _whatsappController.dispose();
     super.dispose();
-  }
-
-  Future<void> _save() async {
-    setState(() => _saving = true);
-    await context.read<ProfileProvider>().updateProfile(
-      name: _nameCtrl.text.trim(),
-      board: _board,
-      language: _language,
-      learnerLevel: _level,
-      grade: _grade,
-    );
-    if (mounted) {
-      setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Profile updated! ✨',
-              style: GoogleFonts.outfit()),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      Navigator.pop(context);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final profile = context.watch<ProfileProvider>();
+
     return Scaffold(
+      backgroundColor: VoiceGuruTheme.backgroundLight,
       appBar: AppBar(
-        title: Text('Student Profile',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: const Text('My Profile'),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Avatar + Name
+            // ── Avatar & Name ────────────────────────────────────────────────
             Center(
-              child: Column(children: [
-                Container(
-                  width: 80, height: 80,
-                  decoration: BoxDecoration(
-                    gradient: VoiceGuruTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: VoiceGuruTheme.primaryPurple
-                            .withValues(alpha: 0.3),
-                        blurRadius: 20, offset: const Offset(0, 6)),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: VoiceGuruTheme.primaryPurple,
+                    child: Text(profile.childName.isNotEmpty ? profile.childName[0].toUpperCase() : 'S', style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(profile.childName, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildHeaderBadge('Class ${profile.grade}'),
+                      const SizedBox(width: 8),
+                      _buildHeaderBadge(profile.board),
                     ],
                   ),
-                  child: const Icon(Icons.school_rounded,
-                      size: 36, color: Colors.white),
-                ).animate().scale(
-                    duration: 400.ms,
-                    begin: const Offset(0.8, 0.8),
-                    end: const Offset(1, 1),
-                    curve: Curves.elasticOut),
-                const SizedBox(height: 16),
-              ]),
-            ),
-
-            // Name field
-            _sectionLabel('Name'),
-            TextField(
-              controller: _nameCtrl,
-              style: GoogleFonts.outfit(color: Colors.white, fontSize: 16),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.person_rounded,
-                    color: VoiceGuruTheme.primaryPurple),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-            // Board selector
-            _sectionLabel('Board'),
-            _chipRow<String>(
-              items: boards,
-              selected: _board,
-              labelOf: (b) => b,
-              onTap: (b) => setState(() => _board = b),
-            ),
-            const SizedBox(height: 24),
-
-            // Grade selector
-            _sectionLabel('Grade'),
-            _chipRow<String>(
-              items: grades,
-              selected: _grade,
-              labelOf: (g) => 'Class $g',
-              onTap: (g) => setState(() => _grade = g),
-            ),
-            const SizedBox(height: 24),
-
-            // Language selector
-            _sectionLabel('Language'),
-            _chipRow<Map<String, String>>(
-              items: languages,
-              selected: languages
-                  .firstWhere((l) => l['code'] == _language,
-                      orElse: () => languages[0]),
-              labelOf: (l) => l['label']!,
-              onTap: (l) => setState(() => _language = l['code']!),
-            ),
-            const SizedBox(height: 24),
-
-            // Learner level
-            _sectionLabel('Difficulty Level'),
-            _chipRow<String>(
-              items: levels,
-              selected: _level,
-              labelOf: (l) => l,
-              onTap: (l) => setState(() => _level = l),
-              icons: const [
-                Icons.child_care_rounded,
-                Icons.trending_up_rounded,
-                Icons.rocket_launch_rounded,
+            // ── Form ─────────────────────────────────────────────────────────
+            _buildSection(
+              children: [
+                _buildFieldLabel('Your Name'),
+                TextField(
+                  controller: _nameController,
+                  decoration: _inputDecoration('Enter name'),
+                ),
+                const SizedBox(height: 20),
+                _buildFieldLabel('Your Class'),
+                DropdownButtonFormField<String>(
+                  value: _selectedClass,
+                  decoration: _inputDecoration(''),
+                  items: List.generate(5, (i) => 'Class ${i + 6}').map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
+                  onChanged: (val) => setState(() => _selectedClass = val!),
+                ),
+                const SizedBox(height: 20),
+                _buildFieldLabel('Your Board'),
+                Row(
+                  children: [
+                    _buildBoardChip('Karnataka State Board', false),
+                    const SizedBox(width: 8),
+                    _buildBoardChip('CBSE', true),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildBoardChip('ICSE', false),
+                    const SizedBox(width: 8),
+                    _buildBoardChip('Other', false),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 36),
 
-            // Save button
+            // ── Parent Updates ──────────────────────────────────────────────
+            const SizedBox(height: 24),
+            _buildParentUpdatesCard(),
+
+            // ── Actions ──────────────────────────────────────────────────────
+            const SizedBox(height: 32),
             SizedBox(
-              width: double.infinity,
+              width: double.infinity, 
               child: ElevatedButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(width: 18, height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.check_rounded),
-                label: Text(_saving ? 'Saving…' : 'Save Profile'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
+                onPressed: () {}, 
+                icon: const Icon(Icons.grid_view_rounded), 
+                label: const Text('Share with Teacher / Parent'), 
+                style: ElevatedButton.styleFrom(backgroundColor: VoiceGuruTheme.successGreen, foregroundColor: Colors.white),
               ),
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity, 
+              child: ElevatedButton(
+                onPressed: () {}, 
+                child: const Text('Save Changes'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity, 
+              child: OutlinedButton(
+                onPressed: () {}, 
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: VoiceGuruTheme.errorRed), 
+                  foregroundColor: VoiceGuruTheme.errorRed, 
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), 
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ), 
+                child: const Text('Clear Chat History'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextButton(onPressed: () {}, child: Text('Sign Out / Reset', style: GoogleFonts.outfit(color: VoiceGuruTheme.textSecondary, decoration: TextDecoration.underline))),
           ],
         ),
       ),
     );
   }
 
-  Widget _sectionLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(text,
-          style: GoogleFonts.outfit(
-              color: VoiceGuruTheme.textSecondary,
-              fontSize: 13, fontWeight: FontWeight.w600,
-              letterSpacing: 0.5)),
+  Widget _buildHeaderBadge(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.blue.shade100)),
+      child: Text(label, style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blue.shade700)),
     );
   }
 
-  Widget _chipRow<T>({
-    required List<T> items,
-    required T selected,
-    required String Function(T) labelOf,
-    required void Function(T) onTap,
-    List<IconData>? icons,
-  }) {
-    return Wrap(
-      spacing: 8, runSpacing: 8,
-      children: List.generate(items.length, (i) {
-        final item = items[i];
-        final isSelected = item == selected;
-        return GestureDetector(
-          onTap: () => onTap(item),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? VoiceGuruTheme.primaryPurple.withValues(alpha: 0.2)
-                  : VoiceGuruTheme.surfaceCard,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected
-                    ? VoiceGuruTheme.primaryPurple
-                    : VoiceGuruTheme.surfaceElevated,
-                width: isSelected ? 1.5 : 1,
-              ),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              if (icons != null) ...[
-                Icon(icons[i],
-                    size: 16,
-                    color: isSelected
-                        ? VoiceGuruTheme.primaryPurpleLight
-                        : VoiceGuruTheme.textSecondary),
-                const SizedBox(width: 6),
-              ],
-              Text(labelOf(item),
-                  style: GoogleFonts.outfit(
-                      color: isSelected ? Colors.white : VoiceGuruTheme.textSecondary,
-                      fontSize: 13, fontWeight: FontWeight.w500)),
-            ]),
+  Widget _buildSection({required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+    );
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(label, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700, color: VoiceGuruTheme.textSecondary)),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: VoiceGuruTheme.backgroundLight,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
+  Widget _buildBoardChip(String label, bool isSelected) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? VoiceGuruTheme.primaryPurple.withValues(alpha: 0.1) : VoiceGuruTheme.backgroundLight,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: isSelected ? VoiceGuruTheme.primaryPurple : Colors.black.withValues(alpha: 0.05)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isSelected) const Icon(Icons.check, size: 16, color: VoiceGuruTheme.primaryPurple),
+            if (isSelected) const SizedBox(width: 4),
+            Text(label, style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: isSelected ? VoiceGuruTheme.primaryPurple : VoiceGuruTheme.textPrimary)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildParentUpdatesCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.black.withValues(alpha: 0.05))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.notifications_active_outlined, color: VoiceGuruTheme.successGreen),
+              const SizedBox(width: 12),
+              Text('Parent Updates', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700)),
+            ],
           ),
-        );
-      }),
+          const SizedBox(height: 8),
+          Text('Send weekly learning reports to your parent via WhatsApp. They will see what you explored and how you performed in quizzes.', style: GoogleFonts.outfit(fontSize: 13, color: VoiceGuruTheme.textSecondary, height: 1.4)),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _whatsappController,
+            decoration: _inputDecoration('Parent\'s WhatsApp (with country code)').copyWith(prefixIcon: const Icon(Icons.phone_android_rounded, size: 20)),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity, 
+            child: ElevatedButton.icon(
+              onPressed: () {}, 
+              icon: const Icon(Icons.send_rounded), 
+              label: const Text('Send Weekly Report Now'), 
+              style: ElevatedButton.styleFrom(backgroundColor: VoiceGuruTheme.successGreen, foregroundColor: Colors.white),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   // Android emulator → host machine localhost
   // Change to your backend URL for physical devices
-  static const String _baseUrl = 'http://10.0.2.2:8000';
+  static const String _baseUrl = 'http://10.44.98.135:8000';
   static const Duration _timeout = Duration(seconds: 15);
 
   /// POST /api/v1/chat/ask
@@ -68,6 +68,20 @@ class ApiClient {
     } on SocketException {
       return null;
     } on http.ClientException {
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Generic GET helper
+  static Future<dynamic> get(String path) async {
+    try {
+      final uri = Uri.parse('$_baseUrl$path');
+      final response = await http.get(uri).timeout(_timeout);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
       return null;
     } catch (_) {
       return null;
