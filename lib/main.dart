@@ -5,17 +5,28 @@ import 'core/supabase_config.dart';
 import 'core/theme.dart';
 import 'providers/chat_provider.dart';
 import 'providers/voice_provider.dart';
+import 'core/local_db.dart';
 import 'providers/profile_provider.dart';
 import 'providers/gamification_provider.dart';
 import 'providers/quiz_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/role_screen.dart';
+import 'screens/faculty_dashboard.dart';
+import 'screens/parent_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // PERF FIX: Disable runtime font fetching — uses bundled/system fallback
+  GoogleFonts.config.allowRuntimeFetching = false;
+
   // Initialize Supabase
   await SupabaseConfig.init();
+
+  // Pre-seed offline database with educational content
+  LocalDatabase.instance.seedIfNeeded();
 
   // Custom error widget — friendly screen instead of Red Screen of Death
   ErrorWidget.builder = (FlutterErrorDetails details) {
@@ -39,7 +50,7 @@ void main() async {
               ),
               const SizedBox(height: 20),
               Text(
-                'Oops! VoiceGuru needs\na quick nap 😴',
+                'Oops! Vaakya needs\na quick nap 😴',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
                   color: Colors.white,
@@ -63,11 +74,11 @@ void main() async {
     );
   };
 
-  runApp(const VoiceGuruApp());
+  runApp(const VaakyaApp());
 }
 
-class VoiceGuruApp extends StatelessWidget {
-  const VoiceGuruApp({super.key});
+class VaakyaApp extends StatelessWidget {
+  const VaakyaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -76,17 +87,27 @@ class VoiceGuruApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => VoiceProvider()),
-        ChangeNotifierProvider(create: (_) => GamificationProvider()),
+        ChangeNotifierProvider(create: (_) => GamificationProvider()..loadFromPrefs()),
         ChangeNotifierProvider(create: (_) => QuizProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: MaterialApp(
-        title: 'VoiceGuru',
-        debugShowCheckedModeBanner: false,
-        theme: VoiceGuruTheme.darkTheme,
-        initialRoute: '/auth',
-        routes: {
-          '/auth': (_) => const AuthScreen(),
-          '/dashboard': (_) => const DashboardScreen(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            title: 'Vaakya',
+            debugShowCheckedModeBanner: false,
+            theme: VoiceGuruTheme.lightTheme,
+            darkTheme: VoiceGuruTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            initialRoute: '/role',
+            routes: {
+              '/role': (_) => const RoleScreen(),
+              '/auth': (_) => const AuthScreen(),
+              '/dashboard': (_) => const DashboardScreen(),
+              '/faculty': (_) => const FacultyDashboard(),
+              '/parent': (_) => const ParentDashboard(),
+            },
+          );
         },
       ),
     );

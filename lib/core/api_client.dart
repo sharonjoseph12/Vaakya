@@ -2,75 +2,52 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 
-/// HTTP client that talks to the FastAPI backend.
 class ApiClient {
-  // Android emulator → host machine localhost
-  // Change to your backend URL for physical devices
-  static const String _baseUrl = 'http://10.0.2.2:8000';
-  static const Duration _timeout = Duration(seconds: 15);
+  static const String _physicalDeviceUrl = 'http://172.18.116.80:8000';
+  static String get _baseUrl => _physicalDeviceUrl;
+  static const Duration _timeout = Duration(seconds: 3);
 
-  /// POST /api/v1/chat/ask
-  /// Returns decoded JSON map or `null` on failure / timeout.
-  static Future<Map<String, dynamic>?> askQuestion({
-    required String profileId,
-    required String query,
-    required String subject,
-    required String language,
-    required String learnerLevel,
-  }) async {
-    try {
-      final uri = Uri.parse('$_baseUrl/api/v1/chat/ask');
-      final response = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'profile_id': profileId,
-              'query': query,
-              'subject': subject,
-              'language': language,
-              'learner_level': learnerLevel,
-            }),
-          )
-          .timeout(_timeout);
+  static bool _backendReachable = true;
+  static DateTime? _lastFailTime;
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
-      }
-      return null;
-    } on SocketException {
-      // No internet — caller should switch to offline mode
-      return null;
-    } on http.ClientException {
-      return null;
-    } catch (_) {
-      return null;
+  static bool get shouldTryBackend {
+    if (_backendReachable) return true;
+    if (_lastFailTime != null && DateTime.now().difference(_lastFailTime!).inSeconds > 30) {
+      _backendReachable = true;
+      return true;
     }
+    return false;
   }
 
-  /// POST /api/v1/chat/vision  (multipart image upload)
-  /// Returns decoded JSON map or `null` on failure.
-  static Future<Map<String, dynamic>?> sendVisionImage(File imageFile) async {
+  static void _markFailed() { _backendReachable = false; _lastFailTime = DateTime.now(); }
+  static void _markSuccess() { _backendReachable = true; }
+
+  static Future<Map<String, dynamic>?> askQuestion({
+    required String profileId, required String query,
+    String subject = 'General', String language = 'en-IN', String learnerLevel = 'Intermediate',
+  }) async {
+    if (!shouldTryBackend) return null;
     try {
-      final uri = Uri.parse('$_baseUrl/api/v1/chat/vision');
-      final request = http.MultipartRequest('POST', uri)
-        ..files.add(
-          await http.MultipartFile.fromPath('file', imageFile.path),
-        );
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/v1/chat/ask'),
+        headers: {HttpHeaders.contentTypeHeader: 'application/json'},
+        body: jsonEncode({'profile_id': profileId, 'query': query, 'subject': subject, 'language': language, 'learner_level': learnerLevel}),
+      ).timeout(_timeout);
+      if (response.statusCode == 200) { _markSuccess(); return jsonDecode(response.body); }
+      _markFailed(); return null;
+    } catch (_) { _markFailed(); return null; }
+  }
 
-      final streamed = await request.send().timeout(_timeout);
-      final response = await http.Response.fromStream(streamed);
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
-      }
-      return null;
-    } on SocketException {
-      return null;
-    } on http.ClientException {
-      return null;
-    } catch (_) {
-      return null;
-    }
+  static Future<String?> describeImage(String base64Image) async {
+    if (!shouldTryBackend) return null;
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/v1/vision/describe'),
+        headers: {HttpHeaders.contentTypeHeader: 'application/json'},
+        body: jsonEncode({'image_base64': base64Image}),
+      ).timeout(_timeout);
+      if (response.statusCode == 200) { _markSuccess(); return (jsonDecode(response.body))['description']; }
+      _markFailed(); return null;
+    } catch (_) { _markFailed(); return null; }
   }
 }

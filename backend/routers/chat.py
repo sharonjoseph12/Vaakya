@@ -4,6 +4,7 @@ from models.schemas import ChatRequest, ChatResponse
 from services.ai_service import generate_response
 from services.rag_service import search_textbook
 from services.db_service import get_child_profile, save_chat_log
+from services.youtube_service import search_video
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
@@ -27,7 +28,16 @@ async def ask_question(request: ChatRequest):
             language=request.language,
         )
 
-        # 4. Persist chat log to Supabase (non-blocking — log failure but don't fail request)
+        # 4. Search YouTube for a related educational video
+        youtube_url = None
+        try:
+            video = await search_video(request.query)
+            if video and video.get("video_id"):
+                youtube_url = f"https://www.youtube.com/watch?v={video['video_id']}"
+        except Exception as yt_err:
+            logger.warning(f"YouTube search failed: {yt_err}")
+
+        # 5. Persist chat log to Supabase (non-blocking)
         try:
             await save_chat_log(
                 child_id=request.profile_id,
@@ -35,14 +45,14 @@ async def ask_question(request: ChatRequest):
                 ai_reply=ai_reply,
                 subject=request.subject,
                 language=request.language,
-                source_page=None,
+                source_page=youtube_url,
             )
         except Exception as db_err:
             logger.error(f"Failed to save chat log for profile {request.profile_id}: {db_err}")
 
         return ChatResponse(
             ai_reply=ai_reply,
-            source_textbook_page=None,
+            source_textbook_page=youtube_url,
             status="success",
         )
 

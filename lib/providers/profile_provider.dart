@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/supabase_config.dart';
 
 /// Manages child profile data from Supabase.
@@ -6,6 +7,22 @@ class ProfileProvider extends ChangeNotifier {
   Map<String, dynamic>? _profile;
   bool _isLoading = false;
   String? _error;
+  String _role = ''; // 'student', 'faculty', 'parent'
+
+  String get role => _role;
+
+  Future<void> setRole(String role) async {
+    _role = role;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_role', role);
+    notifyListeners();
+  }
+
+  Future<String> loadRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    _role = prefs.getString('user_role') ?? '';
+    return _role;
+  }
 
   // Demo mode fallback profile ID
   static const String _demoProfileId = 'demo-child-001';
@@ -102,15 +119,21 @@ class ProfileProvider extends ChangeNotifier {
 
     if (updates.isEmpty) return;
 
+    // Save name locally so it persists
+    if (name != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('student_name', name);
+    }
+
+    // Update local profile immediately
+    _profile?.addAll(updates);
+    notifyListeners();
+
     try {
       await SupabaseConfig.client
           .from('children')
           .update(updates)
           .eq('id', profileId);
-
-      // Update local profile
-      _profile?.addAll(updates);
-      notifyListeners();
     } catch (e) {
       debugPrint('Profile update error: $e');
     }
@@ -118,14 +141,20 @@ class ProfileProvider extends ChangeNotifier {
 
   /// Use demo profile (for development without backend).
   void useDemoProfile() {
-    _profile = _demoProfile();
+    _loadLocalName();
+  }
+
+  Future<void> _loadLocalName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString('student_name') ?? 'Student';
+    _profile = _demoProfile(savedName);
     _error = null;
     notifyListeners();
   }
 
-  Map<String, dynamic> _demoProfile() => {
+  Map<String, dynamic> _demoProfile([String name = 'Student']) => {
         'id': _demoProfileId,
-        'name': 'Student',
+        'name': name,
         'grade': '8',
         'board': 'CBSE',
         'language': 'en-IN',

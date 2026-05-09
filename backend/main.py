@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown(wait=False)
 
 
-app = FastAPI(title="VoiceGuru API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Vaakya API", version="1.0.0", lifespan=lifespan)
 
 app.include_router(chat.router)
 app.include_router(vision.router)
@@ -31,7 +31,7 @@ app.include_router(youtube_router.router)
 
 @app.get("/")
 async def root():
-    return {"message": "VoiceGuru Backend is Online"}
+    return {"message": "Vaakya Backend is Online"}
 
 
 if __name__ == "__main__":

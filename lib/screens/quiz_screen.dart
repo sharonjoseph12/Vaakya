@@ -9,7 +9,11 @@ import '../providers/gamification_provider.dart';
 class QuizScreen extends StatefulWidget {
   final String childId;
   final String subject;
-  const QuizScreen({super.key, required this.childId, required this.subject});
+  const QuizScreen({
+    super.key,
+    this.childId = "demo_child",
+    this.subject = "Science",
+  });
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -36,7 +40,6 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
         title: Text('${widget.subject} Quiz',
             style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -75,7 +78,7 @@ class _QuizScreenState extends State<QuizScreen> {
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           const CircularProgressIndicator(color: Color(0xFF6C63FF)),
           const SizedBox(height: 24),
-          const Text('Generating your quiz...', style: TextStyle(color: Colors.white70, fontSize: 16)),
+          const Text('Generating your quiz...', style: TextStyle(fontSize: 16)),
         ]),
       );
 
@@ -83,7 +86,7 @@ class _QuizScreenState extends State<QuizScreen> {
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           const Text('😕', style: TextStyle(fontSize: 48)),
           const SizedBox(height: 16),
-          const Text('Could not generate quiz', style: TextStyle(color: Colors.white70, fontSize: 18)),
+          const Text('Could not generate quiz', style: TextStyle(fontSize: 18)),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => context.read<QuizProvider>().generateQuiz(widget.childId, widget.subject),
@@ -101,7 +104,7 @@ class _QuizScreenState extends State<QuizScreen> {
         // Progress
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF30363D))),
+          decoration: BoxDecoration(color: Theme.of(context).cardTheme.color, borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).dividerColor)),
           child: Center(child: Text('${quiz.selectedAnswers.length}/${quiz.questions.length} answered', style: const TextStyle(color: Color(0xFF6C63FF), fontWeight: FontWeight.w600))),
         ),
         const SizedBox(height: 20),
@@ -123,7 +126,7 @@ class _QuizScreenState extends State<QuizScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF30363D))),
+      decoration: BoxDecoration(color: Theme.of(context).cardTheme.color, borderRadius: BorderRadius.circular(20), border: Border.all(color: Theme.of(context).dividerColor)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -131,7 +134,7 @@ class _QuizScreenState extends State<QuizScreen> {
           child: Text('Q${i + 1}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
         ),
         const SizedBox(height: 14),
-        Text(q.question, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500, height: 1.4)),
+        Text(q.question, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, fontWeight: FontWeight.w500, height: 1.4)),
         const SizedBox(height: 16),
         ...q.options.map((opt) {
           final letter = opt.substring(0, 1);
@@ -143,18 +146,18 @@ class _QuizScreenState extends State<QuizScreen> {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: selected ? const Color(0xFF6C63FF).withValues(alpha: 0.15) : const Color(0xFF0D1117),
+                color: selected ? const Color(0xFF6C63FF).withValues(alpha: 0.15) : Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: selected ? const Color(0xFF6C63FF) : const Color(0xFF30363D), width: selected ? 2 : 1),
+                border: Border.all(color: selected ? const Color(0xFF6C63FF) : Theme.of(context).dividerColor, width: selected ? 2 : 1),
               ),
               child: Row(children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200), width: 28, height: 28,
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: selected ? const Color(0xFF6C63FF) : Colors.transparent, border: Border.all(color: selected ? const Color(0xFF6C63FF) : const Color(0xFF484F58), width: 2)),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: selected ? const Color(0xFF6C63FF) : Colors.transparent, border: Border.all(color: selected ? const Color(0xFF6C63FF) : Theme.of(context).dividerColor, width: 2)),
                   child: selected ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
                 ),
                 const SizedBox(width: 14),
-                Expanded(child: Text(opt, style: TextStyle(color: selected ? Colors.white : Colors.white70, fontSize: 15))),
+                Expanded(child: Text(opt, style: TextStyle(color: selected ? const Color(0xFF6C63FF) : Theme.of(context).colorScheme.onSurface, fontSize: 15))),
               ]),
             ),
           );
@@ -167,21 +170,27 @@ class _QuizScreenState extends State<QuizScreen> {
     if (quiz.showConfetti) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _confetti.play();
-        if (quiz.quizDuration.inSeconds < 30) context.read<GamificationProvider>().onQuizCompletedFast();
+        if (quiz.quizDuration.inSeconds < 60) context.read<GamificationProvider>().onQuizCompletedFast();
       });
     }
-    final color = quiz.score == 3 ? const Color(0xFF00FF88) : quiz.score == 2 ? const Color(0xFFFFD700) : const Color(0xFFFF6584);
-    final emoji = quiz.score == 3 ? '🏆' : quiz.score == 2 ? '👍' : '💪';
+    // Record score for analytics
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<GamificationProvider>().recordQuizScore(quiz.score);
+    });
+    final total = quiz.questions.length;
+    final pct = total > 0 ? quiz.score / total : 0.0;
+    final color = pct >= 0.8 ? const Color(0xFF00FF88) : pct >= 0.5 ? const Color(0xFFFFD700) : const Color(0xFFFF6584);
+    final emoji = pct >= 0.8 ? '🏆' : pct >= 0.5 ? '👍' : '💪';
     return Center(
       child: Padding(padding: const EdgeInsets.all(32), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Text(emoji, style: const TextStyle(fontSize: 64)).animate().scale(begin: const Offset(0, 0), end: const Offset(1, 1), duration: 600.ms, curve: Curves.elasticOut),
         const SizedBox(height: 24),
-        Text('${quiz.score}/3', style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, color: color)).animate().fadeIn(delay: 200.ms),
+        Text('${quiz.score}/$total', style: TextStyle(fontSize: 56, fontWeight: FontWeight.w900, color: color)).animate().fadeIn(delay: 200.ms),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF30363D))),
-          child: Text(quiz.resultMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.5)),
+          decoration: BoxDecoration(color: Theme.of(context).cardTheme.color, borderRadius: BorderRadius.circular(20), border: Border.all(color: Theme.of(context).dividerColor)),
+          child: Text(quiz.resultMessage, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16, height: 1.5)),
         ).animate().fadeIn(delay: 400.ms),
         const SizedBox(height: 32),
         ElevatedButton.icon(
