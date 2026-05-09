@@ -35,7 +35,7 @@ class QuizGenerateResponse(BaseModel):
 class QuizSubmitRequest(BaseModel):
     child_id: str
     subject: str
-    score: int = Field(..., ge=0, le=3)
+    score: int = Field(..., ge=0, le=10)
 
 
 class QuizSubmitResponse(BaseModel):

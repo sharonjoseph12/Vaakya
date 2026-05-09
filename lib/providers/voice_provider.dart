@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// 4-state voice engine for STT and TTS.
 enum VoiceState { idle, listening, processing, speaking }
@@ -26,6 +27,14 @@ class VoiceProvider extends ChangeNotifier {
 
   /// Initialize both STT and TTS engines.
   Future<void> init() async {
+    // Request microphone permission explicitly
+    final status = await Permission.microphone.request();
+    if (status != PermissionStatus.granted) {
+      debugPrint('Microphone permission not granted');
+      _sttAvailable = false;
+      return;
+    }
+
     _sttAvailable = await _stt.initialize(
       onError: (error) {
         debugPrint('STT error: ${error.errorMsg}');
@@ -56,7 +65,7 @@ class VoiceProvider extends ChangeNotifier {
   }
 
   /// Start listening for speech input.
-  Future<void> startListening() async {
+  Future<void> startListening({String? localeId}) async {
     if (!_sttAvailable) return;
 
     _currentWords = '';
@@ -72,8 +81,8 @@ class VoiceProvider extends ChangeNotifier {
         _resetSilenceTimer();
       },
       listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 2),
-      localeId: 'en_IN',
+      pauseFor: const Duration(seconds: 3),
+      localeId: localeId ?? 'en_IN',
       listenOptions: SpeechListenOptions(
         cancelOnError: true,
         partialResults: true,
@@ -123,7 +132,7 @@ class VoiceProvider extends ChangeNotifier {
   /// 1.5-second silence timeout — auto-stop and trigger API call.
   void _resetSilenceTimer() {
     _silenceTimer?.cancel();
-    _silenceTimer = Timer(const Duration(milliseconds: 1500), () {
+    _silenceTimer = Timer(const Duration(milliseconds: 3000), () {
       if (_state == VoiceState.listening) {
         stopListening();
       }

@@ -173,4 +173,88 @@ class VoiceGuruTheme {
       ),
     );
   }
+
+  // ── Light Mode Colors ──
+  static const Color surfaceLight = Color(0xFFF5F6FA);
+  static const Color surfaceCardLight = Color(0xFFFFFFFF);
+  static const Color surfaceElevatedLight = Color(0xFFE8EAF0);
+  static const Color textPrimaryLight = Color(0xFF1A1A2E);
+  static const Color textSecondaryLight = Color(0xFF6B7280);
+
+  static ThemeData get lightTheme {
+    final textTheme = GoogleFonts.outfitTextTheme(
+      ThemeData.light().textTheme,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: const ColorScheme.light(
+        primary: primaryPurple,
+        onPrimary: Colors.white,
+        secondary: secondaryCyan,
+        onSecondary: Colors.white,
+        surface: surfaceLight,
+        onSurface: textPrimaryLight,
+        error: errorRed,
+        onError: Colors.white,
+      ),
+      scaffoldBackgroundColor: surfaceLight,
+      textTheme: textTheme.copyWith(
+        headlineLarge: textTheme.headlineLarge?.copyWith(
+          color: textPrimaryLight, fontWeight: FontWeight.w700, letterSpacing: -0.5),
+        titleLarge: textTheme.titleLarge?.copyWith(
+          color: textPrimaryLight, fontWeight: FontWeight.w600),
+        bodyLarge: textTheme.bodyLarge?.copyWith(color: textPrimaryLight),
+        bodyMedium: textTheme.bodyMedium?.copyWith(color: textSecondaryLight),
+        labelLarge: textTheme.labelLarge?.copyWith(
+          color: textPrimaryLight, fontWeight: FontWeight.w600),
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: surfaceLight,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleTextStyle: GoogleFonts.outfit(
+          fontSize: 22, fontWeight: FontWeight.w700, color: textPrimaryLight),
+        iconTheme: const IconThemeData(color: textPrimaryLight),
+      ),
+      cardTheme: CardThemeData(
+        color: surfaceCardLight,
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surfaceCardLight,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: surfaceElevatedLight, width: 1)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: primaryPurple, width: 2)),
+        hintStyle: GoogleFonts.outfit(color: textSecondaryLight, fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryPurple,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: textPrimaryLight,
+        contentTextStyle: GoogleFonts.outfit(color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 }

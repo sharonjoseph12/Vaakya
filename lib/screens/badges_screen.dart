@@ -9,7 +9,7 @@ class BadgesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('My Badges', style: TextStyle(fontWeight: FontWeight.w700)),
         backgroundColor: Colors.transparent,
@@ -87,12 +87,12 @@ class BadgesScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: unlocked
                               ? Color(info['color'] as int).withValues(alpha: 0.1)
-                              : const Color(0xFF161B22),
+                              : Theme.of(context).cardTheme.color ?? const Color(0xFF161B22),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: unlocked
                                 ? Color(info['color'] as int).withValues(alpha: 0.5)
-                                : const Color(0xFF30363D),
+                                : Theme.of(context).dividerColor,
                             width: unlocked ? 2 : 1,
                           ),
                         ),

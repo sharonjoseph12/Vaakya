@@ -1,13 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:voiceguru/main.dart';
+import 'package:vaakya/main.dart';
 
 void main() {
-  testWidgets('VoiceGuru app smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(const VoiceGuruApp());
+  testWidgets('Vaakya app smoke test', (WidgetTester tester) async {
+    await tester.pumpWidget(const VaakyaApp());
     await tester.pumpAndSettle();
 
-    // Verify the auth screen renders
-    expect(find.text('VoiceGuru'), findsOneWidget);
-    expect(find.text('Your AI Study Companion'), findsOneWidget);
+    // Verify the dashboard renders
+    expect(find.text('Vaakya'), findsOneWidget);
   });
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -37,12 +38,13 @@ class _CameraScreenState extends State<CameraScreen> {
     if (_image == null) return;
     setState(() { _sending = true; _error = null; });
 
-    final response = await ApiClient.sendVisionImage(_image!);
+    final bytes = await _image!.readAsBytes();
+    final base64Img = base64Encode(bytes);
+    final reply = await ApiClient.describeImage(base64Img);
 
     if (!mounted) return;
 
-    if (response != null && response['ai_reply'] != null) {
-      final reply = response['ai_reply'] as String;
+    if (reply != null) {
       final chat = context.read<ChatProvider>();
       final voice = context.read<VoiceProvider>();
       chat.addUserMessage('📸 [Homework Photo]');
@@ -98,7 +100,7 @@ class _CameraScreenState extends State<CameraScreen> {
                             style: GoogleFonts.outfit(
                                 color: VoiceGuruTheme.textSecondary,
                                 fontSize: 14)),
-                        Text('VoiceGuru will give you a hint!',
+                        Text('Vaakya will give you a hint!',
                             style: GoogleFonts.outfit(
                                 color: VoiceGuruTheme.textSecondary
                                     .withValues(alpha: 0.6),
@@ -173,7 +175,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.send_rounded),
-                label: Text(_sending ? 'Analyzing…' : 'Send to VoiceGuru'),
+                label: Text(_sending ? 'Analyzing…' : 'Send to Vaakya'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),

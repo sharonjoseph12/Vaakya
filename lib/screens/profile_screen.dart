@@ -14,7 +14,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late String _board;
   late String _language;
-  late String _level;
+  late double _levelValue; // 0=Beginner, 1=Intermediate, 2=Advanced
   late String _grade;
   late TextEditingController _nameCtrl;
   bool _saving = false;
@@ -36,7 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final p = context.read<ProfileProvider>();
     _board = p.board;
     _language = p.language;
-    _level = p.learnerLevel;
+    _levelValue = levels.indexOf(p.learnerLevel).toDouble().clamp(0, 2);
     _grade = p.grade;
     _nameCtrl = TextEditingController(text: p.childName);
   }
@@ -47,13 +47,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  String get _currentLevel => levels[_levelValue.round()];
+
   Future<void> _save() async {
     setState(() => _saving = true);
     await context.read<ProfileProvider>().updateProfile(
       name: _nameCtrl.text.trim(),
       board: _board,
       language: _language,
-      learnerLevel: _level,
+      learnerLevel: _currentLevel,
       grade: _grade,
     );
     if (mounted) {
@@ -115,7 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _sectionLabel('Name'),
             TextField(
               controller: _nameCtrl,
-              style: GoogleFonts.outfit(color: Colors.white, fontSize: 16),
+              style: GoogleFonts.outfit(fontSize: 16),
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.person_rounded,
                     color: VoiceGuruTheme.primaryPurple),
@@ -155,18 +157,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Learner level
+            // Difficulty Level — SLIDER
             _sectionLabel('Difficulty Level'),
-            _chipRow<String>(
-              items: levels,
-              selected: _level,
-              labelOf: (l) => l,
-              onTap: (l) => setState(() => _level = l),
-              icons: const [
-                Icons.child_care_rounded,
-                Icons.trending_up_rounded,
-                Icons.rocket_launch_rounded,
-              ],
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(children: [
+                      Icon(
+                        _levelValue.round() == 0 ? Icons.child_care_rounded
+                            : _levelValue.round() == 1 ? Icons.trending_up_rounded
+                            : Icons.rocket_launch_rounded,
+                        color: VoiceGuruTheme.primaryPurple,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(_currentLevel,
+                          style: GoogleFonts.outfit(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
+                    ]),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: VoiceGuruTheme.primaryPurple.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _levelValue.round() == 0 ? 'Easy' : _levelValue.round() == 1 ? 'Medium' : 'Hard',
+                        style: GoogleFonts.outfit(
+                            color: VoiceGuruTheme.primaryPurple,
+                            fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: VoiceGuruTheme.primaryPurple,
+                    inactiveTrackColor: VoiceGuruTheme.primaryPurple.withValues(alpha: 0.2),
+                    thumbColor: VoiceGuruTheme.primaryPurple,
+                    overlayColor: VoiceGuruTheme.primaryPurple.withValues(alpha: 0.1),
+                    trackHeight: 6,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                  ),
+                  child: Slider(
+                    value: _levelValue,
+                    min: 0,
+                    max: 2,
+                    divisions: 2,
+                    onChanged: (v) => setState(() => _levelValue = v),
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Beginner', style: GoogleFonts.outfit(fontSize: 11, color: VoiceGuruTheme.textSecondary)),
+                    Text('Intermediate', style: GoogleFonts.outfit(fontSize: 11, color: VoiceGuruTheme.textSecondary)),
+                    Text('Advanced', style: GoogleFonts.outfit(fontSize: 11, color: VoiceGuruTheme.textSecondary)),
+                  ],
+                ),
+              ]),
             ),
             const SizedBox(height: 36),
 
@@ -197,7 +254,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(text,
           style: GoogleFonts.outfit(
-              color: VoiceGuruTheme.textSecondary,
               fontSize: 13, fontWeight: FontWeight.w600,
               letterSpacing: 0.5)),
     );
@@ -223,7 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             decoration: BoxDecoration(
               color: isSelected
                   ? VoiceGuruTheme.primaryPurple.withValues(alpha: 0.2)
-                  : VoiceGuruTheme.surfaceCard,
+                  : Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isSelected
@@ -243,7 +299,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
               Text(labelOf(item),
                   style: GoogleFonts.outfit(
-                      color: isSelected ? Colors.white : VoiceGuruTheme.textSecondary,
                       fontSize: 13, fontWeight: FontWeight.w500)),
             ]),
           ),

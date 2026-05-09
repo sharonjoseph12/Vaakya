@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>VoiceGuru needs access to your microphone for voice commands.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>VoiceGuru uses speech recognition to understand your questions.</string>
 </dict>
 </plist>

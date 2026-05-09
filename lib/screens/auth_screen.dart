@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -35,13 +36,20 @@ class _AuthScreenState extends State<AuthScreen>
   }
 
   Future<void> _sendOtp() async {
-    if (_phoneCtrl.text.trim().isEmpty) return;
+    final phone = _phoneCtrl.text.trim();
+    if (phone.isEmpty) return;
+    // Ensure phone starts with country code
+    final formattedPhone = phone.startsWith('+') ? phone : '+91$phone';
     setState(() { _loading = true; _error = null; });
     try {
-      await SupabaseConfig.client.auth.signInWithOtp(phone: _phoneCtrl.text.trim());
+      await SupabaseConfig.client.auth.signInWithOtp(phone: formattedPhone)
+          .timeout(const Duration(seconds: 8));
+      _phoneCtrl.text = formattedPhone;
       setState(() => _otpSent = true);
+    } on TimeoutException {
+      setState(() => _error = 'Request timed out. Check your internet connection.');
     } catch (e) {
-      setState(() => _error = 'Could not send OTP.');
+      setState(() => _error = 'Could not send OTP: ${e.toString().length > 80 ? e.toString().substring(0, 80) : e}');
     } finally {
       setState(() => _loading = false);
     }
