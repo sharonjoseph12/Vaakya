@@ -1,4 +1,4 @@
-# voiceguru
+# Vaakya
 
 A new Flutter project.
 
